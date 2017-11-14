@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/jbins.iml" filepath="$PROJECT_DIR$/.idea/modules/jbins.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/jbins_main.iml" filepath="$PROJECT_DIR$/.idea/modules/jbins_main.iml" group="jbins" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/jbins_test.iml" filepath="$PROJECT_DIR$/.idea/modules/jbins_test.iml" group="jbins" />
     </modules>
   </component>
 </project>
