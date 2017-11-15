@@ -1,0 +1,21 @@
+def groupName = 'docker'
+
+def postgresDir = 'postgres'
+def postgresImage = 'jbins-postgres'
+def postgresContainer = 'jbins-postgres'
+
+task postgresBuildImage(type: Exec) {
+    group groupName
+    commandLine 'docker', 'build',  '-t', postgresImage, postgresDir
+}
+
+task postgresRemoveContainer(type: Exec) {
+    group groupName
+    commandLine 'docker', 'rm', '-f', postgresContainer
+    ignoreExitValue = true
+}
+
+task postgresRunContainer(type: Exec) {
+    group groupName
+    commandLine 'docker', 'run', '--name', postgresContainer, '-d', '-p', '5432:5432', postgresImage
+}
