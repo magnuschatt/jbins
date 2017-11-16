@@ -2,6 +2,8 @@ buildscript {
     ext.kotlin_version = '1.1.60'
     ext.postgres_driver_version = '42.1.4'
     ext.junit_version = '4.12'
+    ext.hibernate_version = '5.2.10.Final'
+    ext.jackson_version = '2.9.2'
 
     repositories {
         mavenCentral()
