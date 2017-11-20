@@ -33,15 +33,13 @@ fun newSessionFactory(): SessionFactory {
 
 fun newSession(): Session = sessionFactory.openSession()
 
-fun <R>useSession(block: (Session) -> R): R = newSession().use(block)
-
-fun <R>transaction(block: (Session) -> R): R = useSession { session ->
+fun <R>transaction(block: (Session) -> R): R = newSession().use { session ->
     var tx: Transaction? = null
     try {
-        tx = session.beginTransaction()!!
+        tx = session.beginTransaction()
         val result = block(session)
         tx.commit()
-        return@useSession result
+        return result
     } catch (ex: Throwable) {
         tx?.rollback()
         throw ex
