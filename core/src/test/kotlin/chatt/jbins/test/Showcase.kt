@@ -44,7 +44,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by value`(): Unit = jbinTransaction { db ->
+    fun `test select by equals`(): Unit = jbinTransaction { db ->
         val table = db.getTable("users").apply { createIfNotExists() }
 
         val user1 = mapOf("_id" to "bob", "name" to "Magnus", "age" to 27).toDocument()
@@ -59,7 +59,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by value or value`(): Unit = jbinTransaction { db ->
+    fun `test select by or-filter`(): Unit = jbinTransaction { db ->
         val table = db.getTable("users").apply { createIfNotExists() }
 
         val user1 = mapOf("_id" to "bob", "name" to "Magnus", "age" to 27).toDocument()
@@ -81,7 +81,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by value and value`(): Unit = jbinTransaction { db ->
+    fun `test select by and-filter`(): Unit = jbinTransaction { db ->
         val table = db.getTable("users").apply { createIfNotExists() }
 
         val user1 = mapOf("_id" to "id1", "name" to "Kim", "gender" to "female").toDocument()

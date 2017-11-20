@@ -4,9 +4,10 @@ object JbinFilterTranslator {
 
     fun translate(filter: JbinFilter): Pair<String, List<Any>> {
         return when (filter) {
-            is JbinFilter.Equals -> translateEquals(filter)
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
+            is JbinFilter.Equals -> translateEquals(filter)
+            is JbinFilter.NotEquals -> translateNotEquals(filter)
         }
     }
 
@@ -30,8 +31,17 @@ object JbinFilterTranslator {
     }
 
     private fun translateEquals(filter: JbinFilter.Equals): Pair<String, List<Any>> {
-        val pathElements = filter.path.split('.').joinToString(separator = ", ", transform = { "'$it'" })
-        return "jsonb_extract_path_text(body, $pathElements) = ?" to listOf(filter.value)
+        val pathParams = filter.path.toPathParams()
+        return "jsonb_extract_path_text(body, $pathParams) = ?" to listOf(filter.value)
+    }
+
+    private fun translateNotEquals(filter: JbinFilter.NotEquals): Pair<String, List<Any>> {
+        val pathParams = filter.path.toPathParams()
+        return "jsonb_extract_path_text(body, $pathParams) != ?" to listOf(filter.value)
+    }
+
+    private fun String.toPathParams(): String {
+        return split('.').joinToString(separator = ", ", transform = { "'$it'" })
     }
 
 }

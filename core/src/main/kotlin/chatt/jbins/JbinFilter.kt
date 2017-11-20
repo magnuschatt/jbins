@@ -11,5 +11,6 @@ sealed class JbinFilter {
     }
 
     data class Equals(val path: String, val value: String) : JbinFilter()
+    data class NotEquals(val path: String, val value: String) : JbinFilter()
 
 }
