@@ -4,7 +4,7 @@ import chatt.jbins.JbinAdapter
 import chatt.jbins.JbinDatabase
 import org.hibernate.Session
 
-fun <R>withJbinDatabase(block: (JbinDatabase) -> R) = transaction { session ->
+fun <R> jbinTransaction(block: (JbinDatabase) -> R): R = transaction { session ->
     return@transaction block(JbinDatabase(JbinHibernateAdapter(session)))
 }
 

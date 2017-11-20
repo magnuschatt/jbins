@@ -1,4 +1,4 @@
-package chatt.jbins.test.utils
+package chatt.jbins
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -12,4 +12,10 @@ fun String.toMap(): Map<String, Any> {
 
 fun Map<String, Any>.toJson(): String {
     return mapper.writeValueAsString(this)
+}
+
+fun Map<String, Any>.toDocument(): JbinDocument {
+    val map = this.toMutableMap()
+    val id = map.remove("_id") as String
+    return JbinDocument(id, map.toJson())
 }

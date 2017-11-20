@@ -32,8 +32,10 @@ fun newSessionFactory(): SessionFactory {
 }
 
 fun newSession(): Session = sessionFactory.openSession()
-fun <R>useSession(block: (Session) -> R) = newSession().use(block)
-fun <R>transaction(block: (Session) -> R) = useSession { session ->
+
+fun <R>useSession(block: (Session) -> R): R = newSession().use(block)
+
+fun <R>transaction(block: (Session) -> R): R = useSession { session ->
     var tx: Transaction? = null
     try {
         tx = session.beginTransaction()!!
