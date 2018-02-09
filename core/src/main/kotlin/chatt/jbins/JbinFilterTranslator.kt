@@ -1,13 +1,18 @@
 package chatt.jbins
 
+import chatt.jbins.JsonbFunctions.arrayElements
+import chatt.jbins.JsonbFunctions.jsonbExtractPath
+
 object JbinFilterTranslator {
+
+    private val ARRAY_MARKER = "[]"
 
     fun translate(filter: JbinFilter): Pair<String, List<Any>> {
         return when (filter) {
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
-            is JbinFilter.Equals -> translateEquals(filter)
-            is JbinFilter.NotEquals -> translateNotEquals(filter)
+            is JbinFilter.Equals -> translateEquals(filter.path, filter.value)
+            is JbinFilter.NotEquals -> translateEquals(filter.path, filter.value, negate = true)
         }
     }
 
@@ -30,18 +35,31 @@ object JbinFilterTranslator {
         return translateList(filter, " AND ")
     }
 
-    private fun translateEquals(filter: JbinFilter.Equals): Pair<String, List<Any>> {
-        val pathParams = filter.path.toPathParams()
-        return "jsonb_extract_path_text(body, $pathParams) = ?" to listOf(filter.value)
+    private fun translateEquals(path: String, value: String, negate: Boolean = false): Pair<String, List<Any>> {
+        val elements = path.splitToElements()
+        var sql = "body"
+        elements.forEachIndexed { index, elem ->
+            val lastOne = (index == elements.size - 1)
+            val isArray = elem.isArray
+            sql = jsonbExtractPath(sql, listOf(elem.name), asText = (lastOne && !isArray))
+            if (isArray) sql = arrayElements(sql, lastOne)
+        }
+
+        val comparator = if (negate) "!=" else "="
+        sql = if (elements.none { it.isArray }) "$sql $comparator ?"
+        else "? $comparator ANY(ARRAY(SELECT $sql))"
+
+        return sql to listOf(value)
     }
 
-    private fun translateNotEquals(filter: JbinFilter.NotEquals): Pair<String, List<Any>> {
-        val pathParams = filter.path.toPathParams()
-        return "jsonb_extract_path_text(body, $pathParams) != ?" to listOf(filter.value)
-    }
+    private data class PathElement(val name: String, val isArray: Boolean)
 
-    private fun String.toPathParams(): String {
-        return split('.').joinToString(separator = ", ", transform = { "'$it'" })
+    private fun String.splitToElements() = split('.').map {
+        if (it.endsWith(ARRAY_MARKER)) {
+            PathElement(it.removeSuffix(ARRAY_MARKER), true)
+        } else {
+            PathElement(it, false)
+        }
     }
 
 }
