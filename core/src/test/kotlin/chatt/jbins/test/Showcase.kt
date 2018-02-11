@@ -1,10 +1,14 @@
 package chatt.jbins.test
 
 import chatt.jbins.JbinFilter.*
+import chatt.jbins.JbinFilter.Comparator.*
 import chatt.jbins.test.utils.jbinTransaction
 import chatt.jbins.toDocument
 import org.junit.Assert.*
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.*
+
 
 class Showcase {
 
@@ -37,9 +41,10 @@ class Showcase {
         table.insert(user1, user2)
 
         val all = table.selectAll()
-        assertEquals(2, all.size)
         assertTrue(all.contains(user1))
         assertTrue(all.contains(user2))
+        assertEquals(2, all.size)
+
         table.delete(user1, user2)
     }
 
@@ -51,9 +56,9 @@ class Showcase {
         val user2 = mapOf("_id" to "rof", "name" to "Jens", "age" to 20).toDocument()
         table.insert(user1, user2)
 
-        val returned = table.selectWhere(Equals("name", "Magnus"))
-        assertEquals(1, returned.size)
+        val returned = table.selectWhere(Match("name", EQ, "Magnus"))
         assertEquals(user1, returned.first())
+        assertEquals(1, returned.size)
 
         table.delete(user1, user2)
     }
@@ -68,14 +73,14 @@ class Showcase {
         table.insert(user1, user2, user3)
 
         val filter = Or(
-                Equals("name", "Bob"),
-                Equals("name", "Jens")
+                Match("name", EQ, "Bob"),
+                Match("name", EQ, "Jens")
         )
 
         val returned = table.selectWhere(filter)
-        assertEquals(2, returned.size)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
+        assertEquals(2, returned.size)
 
         table.delete(user1, user2, user3)
     }
@@ -90,8 +95,8 @@ class Showcase {
         table.insert(user1, user2, user3)
 
         val filter = And(
-                Equals("name", "Kim"),
-                Equals("gender", "female")
+                Match("name", EQ, "Kim"),
+                Match("gender", EQ, "female")
         )
 
         val returned = table.selectWhere(filter)
@@ -117,9 +122,9 @@ class Showcase {
         ).toDocument()
 
         table.insert(biker1, biker2)
-        val returned = table.selectWhere(Equals("color[]", "red"))
-        assertEquals(1, returned.size)
+        val returned = table.selectWhere(Match("color[]", EQ, "red"))
         assertEquals(biker2, returned.first())
+        assertEquals(1, returned.size)
 
         table.delete(biker1, biker2)
     }
@@ -150,13 +155,13 @@ class Showcase {
         table.insert(anim1, anim2)
 
         val filter = Or(
-                Equals("color.animal.leg", "large"),
-                Equals("color.animal.leg", "big")
+                Match("color.animal.leg", EQ, "large"),
+                Match("color.animal.leg", EQ, "big")
         )
 
         val returned = table.selectWhere(filter)
-        assertEquals(1, returned.size)
         assertEquals(anim2, returned.first())
+        assertEquals(1, returned.size)
 
         table.delete(anim1, anim2)
     }
@@ -197,15 +202,120 @@ class Showcase {
         table.insert(anim1, anim2)
 
         val filter = Or(
-                Equals("animals[].organs[]", "feather"),
-                Equals("animals[].organs[]", "beak")
+                Match("animals[].organs[]", EQ, "feather"),
+                Match("animals[].organs[]", EQ, "beak")
         )
 
         val returned = table.selectWhere(filter)
-        assertEquals(1, returned.size)
         assertEquals(anim1, returned.first())
+        assertEquals(1, returned.size)
 
         table.delete(anim1, anim2)
+    }
+
+    @Test
+    fun `test select by date range`(): Unit = jbinTransaction { db ->
+        val table = db.getTable("events").apply { createIfNotExists() }
+
+        val sf = SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss")
+        val date1 = sf.format(GregorianCalendar(1990, 1, 1).time)
+        val date2 = sf.format(GregorianCalendar(1990, 1, 2).time)
+        val date3 = sf.format(GregorianCalendar(1990, 1, 3).time)
+        val date4 = sf.format(GregorianCalendar(1990, 1, 4).time)
+        val date5 = sf.format(GregorianCalendar(1990, 1, 5).time)
+
+        val user1 = mapOf("_id" to "1", "name" to "Kim", "date" to date1).toDocument()
+        val user2 = mapOf("_id" to "2", "name" to "Bob", "date" to date2).toDocument()
+        val user3 = mapOf("_id" to "3", "name" to "Hans", "date" to date3).toDocument()
+        val user4 = mapOf("_id" to "4", "name" to "John", "date" to date4).toDocument()
+        val user5 = mapOf("_id" to "5", "name" to "Ida", "date" to date5).toDocument()
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val filter = And(
+                Match("date", GT, date1),
+                Match("date", LTE, date4)
+        )
+
+        val returned = table.selectWhere(filter)
+        assertTrue(returned.contains(user2))
+        assertTrue(returned.contains(user3))
+        assertTrue(returned.contains(user4))
+        assertEquals(3, returned.size)
+
+        table.delete(user1, user2, user3, user4, user5)
+    }
+
+    @Test
+    fun `test select by number range`(): Unit = jbinTransaction { db ->
+        val table = db.getTable("numbers").apply { createIfNotExists() }
+
+        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to 1).toDocument()
+        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to 2.023).toDocument()
+        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to 3).toDocument()
+        val user4 = mapOf("_id" to "4", "name" to "John", "number" to 4.7).toDocument()
+        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to 5.7).toDocument()
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val filter = And(
+                Match("number", GTE, 2.0033),
+                Match("number", LT, 5.2)
+        )
+
+        val returned = table.selectWhere(filter)
+        assertTrue(returned.contains(user2))
+        assertTrue(returned.contains(user3))
+        assertTrue(returned.contains(user4))
+        assertEquals(3, returned.size)
+
+        table.delete(user1, user2, user3, user4, user5)
+    }
+
+    @Test
+    fun `test select by number any in array`(): Unit = jbinTransaction { db ->
+        val table = db.getTable("numbers").apply { createIfNotExists() }
+
+        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to arrayOf(1, 42)).toDocument()
+        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to arrayOf(-1, 42)).toDocument()
+        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to arrayOf(-31, 1)).toDocument()
+        val user4 = mapOf("_id" to "4", "name" to "John", "number" to arrayOf(-1, -42)).toDocument()
+        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to arrayOf(1, 42)).toDocument()
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val filter = Match("number[]", LTE, 0)
+
+        val returned = table.selectWhere(filter)
+        assertTrue(returned.contains(user2))
+        assertTrue(returned.contains(user3))
+        assertTrue(returned.contains(user4))
+        assertEquals(3, returned.size)
+
+        table.delete(user1, user2, user3, user4, user5)
+    }
+
+    @Test
+    fun `test select by number all in array`(): Unit = jbinTransaction { db ->
+        val table = db.getTable("numbers").apply { createIfNotExists() }
+
+        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to arrayOf(1, -42)).toDocument()
+        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to arrayOf(-1, -42)).toDocument()
+        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to arrayOf(-31, -1)).toDocument()
+        val user4 = mapOf("_id" to "4", "name" to "John", "number" to arrayOf(-1, -42)).toDocument()
+        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to arrayOf(1, 42)).toDocument()
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val filter = Match("number[]", LTE, 0, matchAll = true)
+
+        val returned = table.selectWhere(filter)
+        assertTrue(returned.contains(user2))
+        assertTrue(returned.contains(user3))
+        assertTrue(returned.contains(user4))
+        assertEquals(3, returned.size)
+
+        table.delete(user1, user2, user3, user4, user5)
     }
 
 }

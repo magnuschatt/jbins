@@ -2,15 +2,21 @@ package chatt.jbins
 
 sealed class JbinFilter {
 
-    data class Or(val children: Collection<JbinFilter>) : JbinFilter(), Collection<JbinFilter> by children {
+    data class Or(private val children: Collection<JbinFilter>) : JbinFilter(), Collection<JbinFilter> by children {
         constructor(vararg filters: JbinFilter): this(filters.toList())
     }
 
-    data class And(val children: Collection<JbinFilter>) : JbinFilter(), Collection<JbinFilter> by children {
+    data class And(private val children: Collection<JbinFilter>) : JbinFilter(), Collection<JbinFilter> by children {
         constructor(vararg filters: JbinFilter): this(filters.toList())
     }
 
-    data class Equals(val path: String, val value: String) : JbinFilter()
-    data class NotEquals(val path: String, val value: String) : JbinFilter()
+    data class Match(val path: String,
+                     val comparator: Comparator,
+                     val value: Any,
+                     val matchAll: Boolean = false) : JbinFilter()
+
+    enum class Comparator {
+        EQ, NEQ, GT, GTE, LT, LTE
+    }
 
 }

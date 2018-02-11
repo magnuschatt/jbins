@@ -1,18 +1,18 @@
 package chatt.jbins
 
+import chatt.jbins.JbinFilter.Comparator.*
 import chatt.jbins.JsonbFunctions.arrayElements
 import chatt.jbins.JsonbFunctions.jsonbExtractPath
 
 object JbinFilterTranslator {
 
-    private val ARRAY_MARKER = "[]"
+    private const val ARRAY_MARKER = "[]"
 
     fun translate(filter: JbinFilter): Pair<String, List<Any>> {
         return when (filter) {
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
-            is JbinFilter.Equals -> translateEquals(filter.path, filter.value)
-            is JbinFilter.NotEquals -> translateEquals(filter.path, filter.value, negate = true)
+            is JbinFilter.Match -> translateMatch(filter)
         }
     }
 
@@ -35,8 +35,8 @@ object JbinFilterTranslator {
         return translateList(filter, " AND ")
     }
 
-    private fun translateEquals(path: String, value: String, negate: Boolean = false): Pair<String, List<Any>> {
-        val elements = path.splitToElements()
+    private fun translateMatch(filter: JbinFilter.Match): Pair<String, List<Any>> {
+        val elements = filter.path.splitToElements()
         var sql = "body"
         elements.forEachIndexed { index, elem ->
             val lastOne = (index == elements.size - 1)
@@ -45,11 +45,21 @@ object JbinFilterTranslator {
             if (isArray) sql = arrayElements(sql, lastOne)
         }
 
-        val comparator = if (negate) "!=" else "="
-        sql = if (elements.none { it.isArray }) "$sql $comparator ?"
-        else "? $comparator ANY(ARRAY(SELECT $sql))"
+        // signs has to be flipped so they can work with the 'ANY' function in postgresql
+        val comparator = when (filter.comparator) {
+            EQ -> "="
+            NEQ -> "!="
+            GT -> "<"
+            GTE -> "<="
+            LT -> ">"
+            LTE -> ">="
+        }
 
-        return sql to listOf(value)
+        val arrayMatching = if (filter.matchAll) "ALL" else "ANY"
+        sql = if (elements.none { it.isArray }) "? $comparator $sql"
+        else "? $comparator $arrayMatching(ARRAY(SELECT $sql))"
+
+        return sql to listOf(filter.value.toString())
     }
 
     private data class PathElement(val name: String, val isArray: Boolean)

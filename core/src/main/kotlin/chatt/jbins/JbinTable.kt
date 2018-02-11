@@ -1,7 +1,7 @@
 package chatt.jbins
 
-data class JbinTable(val name: String,
-                     val database: JbinDatabase) {
+data class JbinTable(private val name: String,
+                     private val database: JbinDatabase) {
 
     private val idSize = 255
     private val idColumnDef = "id VARCHAR($idSize) PRIMARY KEY"
@@ -28,9 +28,9 @@ data class JbinTable(val name: String,
     }
 
     fun delete(vararg documents: JbinDocument): Int = delete(documents.toList())
-    fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
+    private fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
     fun deleteById(vararg ids: String): Int = deleteById(ids.toList())
-    fun deleteById(ids: Collection<String>): Int {
+    private fun deleteById(ids: Collection<String>): Int {
         if (ids.isEmpty()) return 0
         val whereSql = ids.joinToString(separator = " OR ", transform = { "id = ?" })
         val sql = "DELETE FROM \"$name\" WHERE $whereSql"
