@@ -33,7 +33,7 @@ object JbinFilterTranslator {
     }
 
     private fun translateMatch(filter: JbinFilter.Match): Result {
-        val funcName = getFunctionName(filter.path)
+        val func = getPostgresFunction(filter.path)
         val elements = splitToElements(filter.path)
 
         // signs has to be flipped so they can work with the 'ANY' function in postgresql
@@ -48,17 +48,16 @@ object JbinFilterTranslator {
 
         val sql = if (elements.any { it.isArray }) {
             if (!filter.matchAll && filter.comparator == EQ) {
-                "CAST(ARRAY[?] AS text[]) <@ $funcName(body)"
+                "CAST(ARRAY[?] AS text[]) <@ ${func.name}(body)"
             } else {
                 val arrayMatching = if (filter.matchAll) "ALL" else "ANY"
-                "? $comparator $arrayMatching($funcName(body))"
+                "? $comparator $arrayMatching(${func.name}(body))"
             }
         } else {
-            "? $comparator $funcName(body)"
+            "? $comparator ${func.name}(body)"
         }
 
-        val function = getPostgresFunction(filter.path)
-        return Result(sql, listOf(filter.value.toString()), listOf(function))
+        return Result(sql, listOf(filter.value.toString()), listOf(func))
     }
 
     data class Result(val sql: String,

@@ -59,14 +59,13 @@ data class JbinTable(private val name: String,
 
     fun createIndex(path: String) {
         val elements = splitToElements(path)
-        val funcName = getFunctionName(path)
-        val function = getPostgresFunction(path)
+        val func = getPostgresFunction(path)
 
-        createFunctionsIfNotExists(listOf(function))
+        createFunctionsIfNotExists(listOf(func))
 
         val arrayIndex = elements.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
-        val sql = "CREATE INDEX IF NOT EXISTS ${funcName}_index ON $name $ginPart($funcName(body))"
+        val sql = "CREATE INDEX IF NOT EXISTS ${func.name}_index ON $name $ginPart(${func.name}(body))"
         database.executeUpdate(sql)
     }
 
