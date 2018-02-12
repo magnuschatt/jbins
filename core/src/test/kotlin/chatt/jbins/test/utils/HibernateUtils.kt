@@ -18,7 +18,7 @@ val sessionFactory: SessionFactory by lazy { newSessionFactory() }
 fun newSessionFactory(): SessionFactory {
     val properties = Properties().apply {
         put("hibernate.hbm2ddl.auto", "update")
-        put("hibernate.show_sql", "true")
+        put("hibernate.show_sql", "false")
         put("hibernate.dialect", POSTGRES_DIALECT)
         put("hibernate.connection.driver_class", POSTGRES_DRIVER_CLASS)
         put("hibernate.connection.url", DB_URL)

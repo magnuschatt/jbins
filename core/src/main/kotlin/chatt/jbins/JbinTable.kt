@@ -46,14 +46,40 @@ data class JbinTable(private val name: String,
     }
 
     fun selectWhere(filter: JbinFilter): List<JbinDocument> {
-        val (filterSql, params) = JbinFilterTranslator.translate(filter)
+        val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
         val sql = "SELECT id, CAST(body AS TEXT) FROM $name WHERE $filterSql"
+        createFunctionsIfNotExists(functions)
         return database.executeQuery(sql, params).toDocuments()
     }
 
     fun selectAll(): List<JbinDocument> {
         val sql = "SELECT id, CAST(body AS TEXT) FROM \"$name\""
         return database.executeQuery(sql, emptyList()).toDocuments()
+    }
+
+    fun createIndex(path: String) {
+        val elements = splitToElements(path)
+        val funcName = getFunctionName(path)
+        val function = getPostgresFunction(path)
+
+        createFunctionsIfNotExists(listOf(function))
+
+        val arrayIndex = elements.any { it.isArray }
+        val ginPart = if (arrayIndex) "USING GIN " else ""
+        val sql = "CREATE INDEX IF NOT EXISTS ${funcName}_index ON $name $ginPart($funcName(body))"
+        database.executeUpdate(sql)
+    }
+
+    private fun createFunctionsIfNotExists(functions: List<PostgresFunction>) {
+        functions.forEach { func ->
+            if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
+                val count = database.executeQuery("SELECT COUNT(*) FROM pg_proc WHERE proname = ?", listOf(func.name))
+                if (count.first() == 0.toBigInteger()) {
+                    database.executeUpdate(func.sql)
+                }
+                JbinDatabase.createdFunctionsCache.add(func.name)
+            }
+        }
     }
 
     private fun List<Any>.toDocuments(): List<JbinDocument> {
