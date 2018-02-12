@@ -27,6 +27,14 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params) == 1
     }
 
+    fun replaceOneWhere(document: JbinDocument, filter: JbinFilter): Boolean {
+        val translation = JbinFilterTranslator.translate(filter)
+        createFunctionsIfNotExists(translation.functions)
+        val sql = "UPDATE \"$name\" SET body = CAST(? AS JSONB) WHERE id = ? AND ${translation.sql}"
+        val params = listOf(document.body, document.id) + translation.params
+        return database.executeUpdate(sql, params) == 1
+    }
+
     fun delete(vararg documents: JbinDocument): Int = delete(documents.toList())
     private fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
     fun deleteById(vararg ids: String): Int = deleteById(ids.toList())
@@ -47,8 +55,8 @@ data class JbinTable(private val name: String,
 
     fun selectWhere(filter: JbinFilter): List<JbinDocument> {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
-        val sql = "SELECT id, CAST(body AS TEXT) FROM $name WHERE $filterSql"
         createFunctionsIfNotExists(functions)
+        val sql = "SELECT id, CAST(body AS TEXT) FROM $name WHERE $filterSql"
         return database.executeQuery(sql, params).toDocuments()
     }
 

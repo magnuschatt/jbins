@@ -33,6 +33,34 @@ class Showcase {
     }
 
     @Test
+    fun `test replace one where`(): Unit = jbinTransaction { db ->
+        val table = db.getTable("users").apply { createIfNotExists() }
+
+        val id = "test-user-where"
+        val user = mapOf("_id" to id, "name" to "Magnus", "age" to 27).toDocument()
+        val updatedUser = mapOf("_id" to id,"name" to "Magnus", "age" to 28).toDocument()
+
+        table.insert(user)
+        val foundUser = table.selectOneById(id)
+        assertEquals(user, foundUser)
+
+        // The following replace should fail, since Magnus is not 40
+        val wasReplaced1 = table.replaceOneWhere(updatedUser, Match("age", EQ, 40))
+        assertFalse(wasReplaced1)
+        val foundUpdatedUser1 = table.selectOneById(id)
+        assertEquals(user, foundUpdatedUser1)
+
+        // The following replace should succeed, since Magnus is 27
+        val wasReplaced2 = table.replaceOneWhere(updatedUser, Match("age", EQ, 27))
+        assertTrue(wasReplaced2)
+        val foundUpdatedUser2 = table.selectOneById(id)
+        assertEquals(updatedUser, foundUpdatedUser2)
+
+        table.deleteById(id)
+        assertNull(table.selectOneById(id))
+    }
+
+    @Test
     fun `test select all`(): Unit = jbinTransaction { db ->
         val table = db.getTable("users").apply { createIfNotExists() }
 

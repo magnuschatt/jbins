@@ -4,7 +4,7 @@ import chatt.jbins.JbinFilter.Comparator.*
 
 object JbinFilterTranslator {
 
-    fun translate(filter: JbinFilter): Result {
+    fun translate(filter: JbinFilter): Translation {
         return when (filter) {
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
@@ -12,8 +12,8 @@ object JbinFilterTranslator {
         }
     }
 
-    private fun translateList(filters: Collection<JbinFilter>, separator: String): Result {
-        val empty = Result("true", emptyList(), emptyList())
+    private fun translateList(filters: Collection<JbinFilter>, separator: String): Translation {
+        val empty = Translation("true", emptyList(), emptyList())
         val children = filters.map { translate(it) }.filterNot { it == empty }
         if (children.isEmpty()) return empty
         if (children.size == 1) return children.first()
@@ -21,18 +21,18 @@ object JbinFilterTranslator {
         val sql = children.joinToString(separator = separator, prefix = "(", postfix = ")", transform = { it.sql })
         val params = children.flatMap { it.params }
         val functions = children.flatMap { it.functions }
-        return Result(sql, params, functions)
+        return Translation(sql, params, functions)
     }
 
-    private fun translateOr(filter: JbinFilter.Or): Result {
+    private fun translateOr(filter: JbinFilter.Or): Translation {
         return translateList(filter, " OR ")
     }
 
-    private fun translateAnd(filter: JbinFilter.And): Result {
+    private fun translateAnd(filter: JbinFilter.And): Translation {
         return translateList(filter, " AND ")
     }
 
-    private fun translateMatch(filter: JbinFilter.Match): Result {
+    private fun translateMatch(filter: JbinFilter.Match): Translation {
         val func = getPostgresFunction(filter.path)
         val elements = splitToElements(filter.path)
 
@@ -57,11 +57,11 @@ object JbinFilterTranslator {
             "? $comparator ${func.name}(body)"
         }
 
-        return Result(sql, listOf(filter.value.toString()), listOf(func))
+        return Translation(sql, listOf(filter.value.toString()), listOf(func))
     }
 
-    data class Result(val sql: String,
-                      val params: List<String>,
-                      val functions: List<PostgresFunction>)
+    data class Translation(val sql: String,
+                           val params: List<String>,
+                           val functions: List<PostgresFunction>)
 
 }
