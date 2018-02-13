@@ -17,7 +17,7 @@ fun splitToElements(path: String) = path.split('.').map {
 }
 
 fun getFunctionName(path: String): String {
-    return "jbins_func_" + path.replace('.','_').replace("[]", "$")
+    return "jbins_func_" + path.replace('.','_').replace("[]", "$").toLowerCase()
 }
 
 fun getPostgresFunction(path: String): PostgresFunction {

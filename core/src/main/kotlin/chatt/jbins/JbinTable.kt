@@ -56,7 +56,7 @@ data class JbinTable(private val name: String,
     fun selectWhere(filter: JbinFilter): List<JbinDocument> {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
         createFunctionsIfNotExists(functions)
-        val sql = "SELECT id, CAST(body AS TEXT) FROM $name WHERE $filterSql"
+        val sql = "SELECT id, CAST(body AS TEXT) FROM \"$name\" WHERE $filterSql"
         return database.executeQuery(sql, params).toDocuments()
     }
 
@@ -73,7 +73,7 @@ data class JbinTable(private val name: String,
 
         val arrayIndex = elements.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
-        val sql = "CREATE INDEX IF NOT EXISTS ${func.name}_index ON $name $ginPart(${func.name}(body))"
+        val sql = "CREATE INDEX IF NOT EXISTS ${func.name}_index ON \"$name\" $ginPart(${func.name}(body))"
         database.executeUpdate(sql)
     }
 
