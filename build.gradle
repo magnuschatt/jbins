@@ -4,6 +4,8 @@ buildscript {
     ext.junit_version = '4.12'
     ext.hibernate_version = '5.2.10.Final'
     ext.jackson_version = '2.9.2'
+    ext.kotlin_logging_version = '1.5.3'
+    ext.logback_version = '1.2.3'
 
     repositories {
         mavenCentral()

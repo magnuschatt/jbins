@@ -35,8 +35,28 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params) == 1
     }
 
+    fun patchWhere(filter: JbinFilter, path: String, newValue: String): Int {
+        val translation = JbinFilterTranslator.translate(filter)
+        createFunctionsIfNotExists(translation.functions)
+        val elements = splitToElements(path)
+
+        if (elements.any { it.isArray }) {
+            throw IllegalArgumentException("Arrays not allowed in updateWhere path: " + path)
+        }
+
+        val pathPart = elements.joinToString(separator = ",", prefix = "{", postfix = "}") { it.name }
+        val params = listOf(pathPart, newValue) + translation.params
+        val sql = "UPDATE \"$name\" SET body = jsonb_set(body, CAST(? AS TEXT[]), to_jsonb(?)) WHERE ${translation.sql}"
+        return database.executeUpdate(sql, params)
+    }
+
+    fun patchById(vararg ids: String, path: String, newValue: String): Int = patchById(ids.toList(), path, newValue)
+    fun patchById(ids: Collection<String>, path: String, newValue: String): Int {
+        return 0
+    }
+
     fun delete(vararg documents: JbinDocument): Int = delete(documents.toList())
-    private fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
+    fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
     fun deleteById(vararg ids: String): Int = deleteById(ids.toList())
     private fun deleteById(ids: Collection<String>): Int {
         if (ids.isEmpty()) return 0
@@ -77,7 +97,7 @@ data class JbinTable(private val name: String,
         database.executeUpdate(sql)
     }
 
-    private fun createFunctionsIfNotExists(functions: List<PostgresFunction>) {
+    private fun createFunctionsIfNotExists(functions: Iterable<PostgresFunction>) {
         functions.forEach { func ->
             if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
                 val count = database.executeQuery("SELECT COUNT(*) FROM pg_proc WHERE proname = ?", listOf(func.name))

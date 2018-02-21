@@ -9,7 +9,7 @@ import java.util.*
 
 const val DB_URL = "jdbc:postgresql://docker:5432/jbins"
 const val DB_USER = "postgres"
-const val DB_PASS = "postgres"
+const val DB_PASS = "redpie"
 const val POSTGRES_DRIVER_CLASS = "org.postgresql.Driver"
 const val POSTGRES_DIALECT = "org.hibernate.dialect.PostgreSQL94Dialect"
 

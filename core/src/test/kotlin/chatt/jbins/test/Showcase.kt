@@ -3,7 +3,8 @@ package chatt.jbins.test
 import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.*
 import chatt.jbins.test.utils.jbinTransaction
-import chatt.jbins.toDocument
+import chatt.jbins.test.utils.newTestTable
+import chatt.jbins.utils.document
 import org.junit.Assert.*
 import org.junit.Test
 import java.text.SimpleDateFormat
@@ -14,19 +15,17 @@ class Showcase {
 
     @Test
     fun `test insert, select, replace, and delete`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
         val id = "test-user"
-        val user = mapOf("_id" to id, "name" to "Magnus", "age" to 27).toDocument()
-        val updatedUser = mapOf("_id" to id,"name" to "Magnus", "age" to 28).toDocument()
+        val doc1 = document("_id" to id, "name" to "Magnus", "age" to 27)
+        val doc2 = document("_id" to id, "name" to "Magnus", "age" to 28)
 
-        table.insert(user)
-        val foundUser = table.selectOneById(id)
-        assertEquals(user, foundUser)
+        table.insert(doc1)
+        assertEquals(doc1, table.selectOneById(id))
 
-        table.replaceOne(updatedUser)
-        val foundUpdatedUser = table.selectOneById(id)
-        assertEquals(updatedUser, foundUpdatedUser)
+        table.replaceOne(doc2)
+        assertEquals(doc2, table.selectOneById(id))
 
         table.deleteById(id)
         assertNull(table.selectOneById(id))
@@ -34,27 +33,20 @@ class Showcase {
 
     @Test
     fun `test replace one where`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
         val id = "test-user-where"
-        val user = mapOf("_id" to id, "name" to "Magnus", "age" to 27).toDocument()
-        val updatedUser = mapOf("_id" to id,"name" to "Magnus", "age" to 28).toDocument()
+        val doc1 = document("_id" to id, "name" to "Magnus", "age" to 27)
+        val doc2 = document("_id" to id, "name" to "Magnus", "age" to 28)
 
-        table.insert(user)
-        val foundUser = table.selectOneById(id)
-        assertEquals(user, foundUser)
+        table.insert(doc1)
+        assertEquals(doc1, table.selectOneById(id))
 
-        // The following replace should fail, since Magnus is not 40
-        val wasReplaced1 = table.replaceOneWhere(updatedUser, Match("age", EQ, 40))
-        assertFalse(wasReplaced1)
-        val foundUpdatedUser1 = table.selectOneById(id)
-        assertEquals(user, foundUpdatedUser1)
+        assertFalse(table.replaceOneWhere(doc2, Match("age", EQ, 40))) // should fail
+        assertEquals(doc1, table.selectOneById(id))
 
-        // The following replace should succeed, since Magnus is 27
-        val wasReplaced2 = table.replaceOneWhere(updatedUser, Match("age", EQ, 27))
-        assertTrue(wasReplaced2)
-        val foundUpdatedUser2 = table.selectOneById(id)
-        assertEquals(updatedUser, foundUpdatedUser2)
+        assertTrue(table.replaceOneWhere(doc2, Match("age", EQ, 27))) // should succeed
+        assertEquals(doc2, table.selectOneById(id))
 
         table.deleteById(id)
         assertNull(table.selectOneById(id))
@@ -62,10 +54,10 @@ class Showcase {
 
     @Test
     fun `test select all`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "sam", "name" to "Magnus", "age" to 27).toDocument()
-        val user2 = mapOf("_id" to "lol", "name" to "Jens", "age" to 20).toDocument()
+        val user1 = document("name" to "Magnus", "age" to 27)
+        val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
 
         val all = table.selectAll()
@@ -78,10 +70,10 @@ class Showcase {
 
     @Test
     fun `test select by equals`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "bob", "name" to "Magnus", "age" to 27).toDocument()
-        val user2 = mapOf("_id" to "rof", "name" to "Jens", "age" to 20).toDocument()
+        val user1 = document("name" to "Magnus", "age" to 27)
+        val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
 
         val returned = table.selectWhere(Match("name", EQ, "Magnus"))
@@ -93,11 +85,11 @@ class Showcase {
 
     @Test
     fun `test select by or-filter`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "bob", "name" to "Magnus", "age" to 27).toDocument()
-        val user2 = mapOf("_id" to "rof", "name" to "Bob", "age" to 20).toDocument()
-        val user3 = mapOf("_id" to "sof", "name" to "Jens", "age" to 19).toDocument()
+        val user1 = document("name" to "Magnus", "age" to 27)
+        val user2 = document("name" to "Bob", "age" to 20)
+        val user3 = document("name" to "Jens", "age" to 19)
         table.insert(user1, user2, user3)
 
         val filter = Or(
@@ -115,11 +107,11 @@ class Showcase {
 
     @Test
     fun `test select by and-filter`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("users").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "id1x", "name" to "Kim", "gender" to "female").toDocument()
-        val user2 = mapOf("_id" to "id2x", "name" to "Kim", "gender" to "male").toDocument()
-        val user3 = mapOf("_id" to "id3x", "name" to "Jens", "gender" to "female").toDocument()
+        val user1 = document("name" to "Kim", "gender" to "female")
+        val user2 = document("name" to "Kim", "gender" to "male")
+        val user3 = document("name" to "Jens", "gender" to "female")
         table.insert(user1, user2, user3)
 
         val filter = And(
@@ -136,18 +128,16 @@ class Showcase {
 
     @Test
     fun `test select by equals any in array`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("bikers").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val biker1 = mapOf(
-                "_id" to "id1yy",
+        val biker1 = document(
                 "name" to "Harvey",
                 "color" to arrayOf("black", "blue")
-        ).toDocument()
-        val biker2 = mapOf(
-                "_id" to "id2yy",
+        )
+        val biker2 = document(
                 "name" to "Davidson",
                 "color" to arrayOf("red", "blue")
-        ).toDocument()
+        )
 
         table.insert(biker1, biker2)
         val returned = table.selectWhere(Match("color[]", EQ, "red"))
@@ -159,26 +149,24 @@ class Showcase {
 
     @Test
     fun `test select by equals in nested object`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("animals").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val anim1 = mapOf(
-                "_id" to "id7",
+        val anim1 = document(
                 "name" to "Boson",
                 "color" to mapOf(
                         "animal" to mapOf(
                                 "leg" to "short"
                         )
                 )
-        ).toDocument()
-        val anim2 = mapOf(
-                "_id" to "id8",
+        )
+        val anim2 = document(
                 "name" to "Boson",
                 "color" to mapOf(
                         "animal" to mapOf(
                                 "leg" to "big"
                         )
                 )
-        ).toDocument()
+        )
 
         table.insert(anim1, anim2)
 
@@ -196,10 +184,9 @@ class Showcase {
 
     @Test
     fun `test select by equals in nested object and array`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("animals").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val anim1 = mapOf(
-                "_id" to "ida7",
+        val anim1 = document(
                 "name" to "Boson",
                 "animals" to arrayOf(
                         mapOf(
@@ -211,9 +198,8 @@ class Showcase {
                                 "organs" to arrayOf("colors", "eye")
                         )
                 )
-        ).toDocument()
-        val anim2 = mapOf(
-                "_id" to "ida8",
+        )
+        val anim2 = document(
                 "name" to "Boson",
                 "animals" to arrayOf(
                         mapOf(
@@ -225,7 +211,7 @@ class Showcase {
                                 "organs" to arrayOf("mouth", "liver")
                         )
                 )
-        ).toDocument()
+        )
 
         table.insert(anim1, anim2)
 
@@ -243,7 +229,7 @@ class Showcase {
 
     @Test
     fun `test select by date range`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("events").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
         val sf = SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss")
         val date1 = sf.format(GregorianCalendar(1990, 1, 1).time)
@@ -252,11 +238,11 @@ class Showcase {
         val date4 = sf.format(GregorianCalendar(1990, 1, 4).time)
         val date5 = sf.format(GregorianCalendar(1990, 1, 5).time)
 
-        val user1 = mapOf("_id" to "1", "name" to "Kim", "date" to date1).toDocument()
-        val user2 = mapOf("_id" to "2", "name" to "Bob", "date" to date2).toDocument()
-        val user3 = mapOf("_id" to "3", "name" to "Hans", "date" to date3).toDocument()
-        val user4 = mapOf("_id" to "4", "name" to "John", "date" to date4).toDocument()
-        val user5 = mapOf("_id" to "5", "name" to "Ida", "date" to date5).toDocument()
+        val user1 = document("name" to "Kim", "date" to date1)
+        val user2 = document("name" to "Bob", "date" to date2)
+        val user3 = document("name" to "Hans", "date" to date3)
+        val user4 = document("name" to "John", "date" to date4)
+        val user5 = document("name" to "Ida", "date" to date5)
 
         table.insert(user1, user2, user3, user4, user5)
 
@@ -276,13 +262,13 @@ class Showcase {
 
     @Test
     fun `test select by number range`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("numbers").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to 1).toDocument()
-        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to 2.023).toDocument()
-        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to 3).toDocument()
-        val user4 = mapOf("_id" to "4", "name" to "John", "number" to 4.7).toDocument()
-        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to 5.7).toDocument()
+        val user1 = document("name" to "Kim", "number" to 1)
+        val user2 = document("name" to "Bob", "number" to 2.023)
+        val user3 = document("name" to "Hans", "number" to 3)
+        val user4 = document("name" to "John", "number" to 4.7)
+        val user5 = document("name" to "Ida", "number" to 5.7)
 
         table.insert(user1, user2, user3, user4, user5)
 
@@ -301,14 +287,37 @@ class Showcase {
     }
 
     @Test
-    fun `test select by number any in array`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("numbers").apply { createIfNotExists() }
+    fun `test patch where`(): Unit = jbinTransaction { db ->
 
-        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to arrayOf(1, 42)).toDocument()
-        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to arrayOf(-1, 42)).toDocument()
-        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to arrayOf(-31, 1)).toDocument()
-        val user4 = mapOf("_id" to "4", "name" to "John", "number" to arrayOf(-1, -42)).toDocument()
-        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to arrayOf(1, 42)).toDocument()
+        // arrange
+        val table = db.newTestTable()
+        val people = listOf("Kim", "Bob", "Bob", "John", "Ida")
+                .map { document("name" to it) }
+
+        table.insert(people)
+
+        // act
+        val numUpdated = table.patchWhere(
+                filter = Match("name", EQ, "Bob"),
+                path = "name",
+                newValue = "Hans")
+
+        // assert
+        assertEquals(2, numUpdated)
+
+        // clean
+        table.delete(people)
+    }
+
+    @Test
+    fun `test select by number any in array`(): Unit = jbinTransaction { db ->
+        val table = db.newTestTable()
+
+        val user1 = document("name" to "Kim", "number" to arrayOf(1, 42))
+        val user2 = document("name" to "Bob", "number" to arrayOf(-1, 42))
+        val user3 = document("name" to "Hans", "number" to arrayOf(-31, 1))
+        val user4 = document("name" to "John", "number" to arrayOf(-1, -42))
+        val user5 = document("name" to "Ida", "number" to arrayOf(1, 42))
 
         table.insert(user1, user2, user3, user4, user5)
 
@@ -325,13 +334,13 @@ class Showcase {
 
     @Test
     fun `test select by number all in array`(): Unit = jbinTransaction { db ->
-        val table = db.getTable("numbers").apply { createIfNotExists() }
+        val table = db.newTestTable()
 
-        val user1 = mapOf("_id" to "1", "name" to "Kim", "number" to arrayOf(1, -42)).toDocument()
-        val user2 = mapOf("_id" to "2", "name" to "Bob", "number" to arrayOf(-1, -42)).toDocument()
-        val user3 = mapOf("_id" to "3", "name" to "Hans", "number" to arrayOf(-31, -1)).toDocument()
-        val user4 = mapOf("_id" to "4", "name" to "John", "number" to arrayOf(-1, -42)).toDocument()
-        val user5 = mapOf("_id" to "5", "name" to "Ida", "number" to arrayOf(1, 42)).toDocument()
+        val user1 = document("name" to "Kim", "number" to arrayOf(1, -42))
+        val user2 = document("name" to "Bob", "number" to arrayOf(-1, -42))
+        val user3 = document("name" to "Hans", "number" to arrayOf(-31, -1))
+        val user4 = document("name" to "John", "number" to arrayOf(-1, -42))
+        val user5 = document("name" to "Ida", "number" to arrayOf(1, 42))
 
         table.insert(user1, user2, user3, user4, user5)
 

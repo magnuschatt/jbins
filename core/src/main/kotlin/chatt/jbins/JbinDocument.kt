@@ -1,8 +1,10 @@
 package chatt.jbins
 
+import chatt.jbins.utils.toMap
+
 data class JbinDocument(val id: String, val body: String) {
 
-    val asMap: Map<String, Any> by lazy {
+    private val asMap: Map<String, Any> by lazy {
         body.toMap().toMutableMap().also { it["_id"] = id }
     }
 
@@ -17,4 +19,6 @@ data class JbinDocument(val id: String, val body: String) {
     override fun hashCode(): Int {
         return asMap.hashCode()
     }
+
+
 }

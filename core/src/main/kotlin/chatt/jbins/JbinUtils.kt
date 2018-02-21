@@ -33,17 +33,11 @@ fun getPostgresFunction(path: String): PostgresFunction {
     }
 
     val funcSql = if (elements.none { it.isArray }) {
-        """
-        CREATE FUNCTION $funcName(body jsonb) RETURNS text AS $$
-        SELECT $funcBody
-        $$ LANGUAGE SQL IMMUTABLE;
-        """
+        "CREATE FUNCTION $funcName(body jsonb) RETURNS text AS " +
+                "$$ SELECT $funcBody $$ LANGUAGE SQL IMMUTABLE;"
     } else {
-        """
-        CREATE FUNCTION $funcName(body jsonb) RETURNS text[] AS $$
-        SELECT ARRAY(SELECT $funcBody)
-        $$ LANGUAGE SQL IMMUTABLE;
-        """
+        "CREATE FUNCTION $funcName(body jsonb) RETURNS text[] AS " +
+                "$$ SELECT ARRAY(SELECT $funcBody) $$ LANGUAGE SQL IMMUTABLE;"
     }
     return PostgresFunction(funcName, funcSql)
 }

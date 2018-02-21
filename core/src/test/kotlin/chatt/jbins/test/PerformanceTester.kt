@@ -3,7 +3,7 @@ package chatt.jbins.test
 import chatt.jbins.JbinFilter
 import chatt.jbins.JbinFilter.Comparator.EQ
 import chatt.jbins.test.utils.jbinTransaction
-import chatt.jbins.toDocument
+import chatt.jbins.utils.toDocument
 import java.util.*
 import kotlin.system.measureNanoTime
 
@@ -11,45 +11,58 @@ val random = Random(1337)
 
 fun main(args: Array<String>) {
 
+    val ids = (1..10).map { rand() }
+    val path = "age"
+    val filters = (1..10).map { JbinFilter.Match(path, EQ, ids[random.nextInt(ids.size)]) }
 
     var nanoTime: Long = 0
     measureNanoTime {
         jbinTransaction { db ->
             db.getTable("users").apply { createIfNotExists() }
 
+
             for (k in 1..100) {
                 for (i in 1..150) {
                     val table = db.getTable("users").apply { createIfNotExists() }
                     val users = (1..100).map {
                         val id = UUID.randomUUID().toString().replace("-", "")
-                        mapOf("_id" to id, "name" to "Magnus", "age" to arrayOf(rand(), rand())).toDocument()
+                        mapOf("_id" to id, "name" to "Magnus", path to ids[random.nextInt(ids.size)]).toDocument()
                     }
                     table.insert(users)
                 }
                 println("$k/100")
             }
 
-            val path = "age[]"
+        }
+
+        jbinTransaction { db ->
+
             db.getTable("users").createIndex(path)
 
-            val filter = JbinFilter.Match(path, EQ, 99)
-             measureNanoTime {
+            val filter = JbinFilter.Match(path, EQ, ids[random.nextInt(ids.size)])
+            measureNanoTime {
                 val selectWhere = db.getTable("users").selectWhere(filter)
                 println("Result size: " + selectWhere.size)
             }
 
+            filters.forEach {
+                db.getTable("users").selectWhere(it)
+            }
+        }
+
+        jbinTransaction { db ->
             nanoTime = measureNanoTime {
-                for (i in 1..10) {
-                    db.getTable("users").selectWhere(JbinFilter.Match(path, EQ, random.nextInt(100) + 1))
-                    println("$i/10")
+                filters.forEachIndexed { i, it ->
+                    db.getTable("users").selectWhere(it)
+                    println("$i/1000")
                 }
             }
         }
     }
 
-    println(nanoTime / 1_000_000_000.0 / 10.0)
+    println(nanoTime / 1_000_000_000.0 / 1000.0)
     System.exit(0)
 
 }
 
-fun rand() = random.nextInt(100) + 1
+fun rand() = UUID.randomUUID().toString().replace("-","")

@@ -5,8 +5,10 @@ sourceCompatibility = 1.8
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     compile "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+    compile "io.github.microutils:kotlin-logging:$kotlin_logging_version"
 
     testCompile "org.postgresql:postgresql:$postgres_driver_version"
     testCompile "org.hibernate:hibernate-core:$hibernate_version"
+    testCompile "ch.qos.logback:logback-classic:$logback_version"
     testCompile "junit:junit:$junit_version"
 }

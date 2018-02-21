@@ -14,8 +14,13 @@ class JbinHibernateAdapter(private val session: Session) : JbinAdapter {
         parameters.forEachIndexed { i, param -> setParameter(i+1, param) }
     }
 
-    override fun executeUpdate(sql: String, parameters: List<Any>): Int = prepareQuery(sql, parameters).executeUpdate()
-    override fun executeQuery(sql: String, parameters: List<Any>): List<Any> = prepareQuery(sql, parameters).resultList
+    override fun executeUpdate(sql: String, parameters: List<Any>): Int {
+        return prepareQuery(sql, parameters).executeUpdate()
+    }
+
+    override fun executeQuery(sql: String, parameters: List<Any>): List<Any> {
+        return prepareQuery(sql, parameters).resultList
+    }
 
 }
 
