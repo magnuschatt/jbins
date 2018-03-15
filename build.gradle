@@ -1,25 +1,32 @@
 buildscript {
+
+    // prod dependencies
     ext.kotlin_version = '1.2.30'
+    ext.jackson_version = '2.9.2'
+    ext.kotlin_logging_version = '1.5.3'
+
+    // dev dependencies
     ext.postgres_driver_version = '42.1.4'
     ext.junit_version = '4.12'
     ext.hibernate_version = '5.2.10.Final'
-    ext.jackson_version = '2.9.2'
-    ext.kotlin_logging_version = '1.5.3'
     ext.logback_version = '1.2.3'
+    ext.shadow_version = '2.0.2'
 
     repositories {
         mavenCentral()
+        jcenter()
     }
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlin_version"
+        classpath "com.github.jengelman.gradle.plugins:shadow:$shadow_version"
     }
 }
 
 allprojects {
     group 'chatt.jbins'
-    version '0.0.0'
+    version '0.7'
 
     apply plugin: 'idea'
 

@@ -1,4 +1,5 @@
 apply plugin: 'kotlin'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 1.8
 
@@ -11,4 +12,8 @@ dependencies {
     testCompile "org.hibernate:hibernate-core:$hibernate_version"
     testCompile "ch.qos.logback:logback-classic:$logback_version"
     testCompile "junit:junit:$junit_version"
+}
+
+shadowJar {
+    baseName = 'jbins'
 }
