@@ -16,12 +16,12 @@ data class JbinDatabase(private val adapter: JbinAdapter): JbinAdapter {
     }
 
     override fun executeUpdate(sql: String, parameters: List<Any>): Int {
-        logger.debug { "Executing SQL update: '$sql' with parameters: $parameters" }
+        logger.debug { "Exec SQL: '$sql' with parameters: $parameters" }
         return adapter.executeUpdate(sql, parameters)
     }
 
     override fun executeQuery(sql: String, parameters: List<Any>): List<Any> {
-        logger.debug { "Executing SQL query: '$sql' with parameters: $parameters" }
+        logger.debug { "Exec SQL: '$sql' with parameters: $parameters" }
         return adapter.executeQuery(sql, parameters)
     }
 

@@ -1,12 +1,7 @@
 package chatt.jbins.test.utils
 
 import chatt.jbins.JbinAdapter
-import chatt.jbins.JbinDatabase
 import org.hibernate.Session
-
-fun <R> jbinTransaction(block: (JbinDatabase) -> R): R = transaction { session ->
-    return@transaction block(JbinDatabase(JbinHibernateAdapter(session)))
-}
 
 class JbinHibernateAdapter(private val session: Session) : JbinAdapter {
 

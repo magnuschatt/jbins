@@ -1,4 +1,6 @@
-package chatt.jbins
+package chatt.jbins.utils
+
+import chatt.jbins.JsonbFunctions
 
 const val ARRAY_MARKER = "[]"
 

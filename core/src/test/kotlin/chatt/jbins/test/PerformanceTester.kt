@@ -1,5 +1,6 @@
 package chatt.jbins.test
 
+import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter
 import chatt.jbins.JbinFilter.Comparator.EQ
 import chatt.jbins.test.utils.jbinTransaction
@@ -18,15 +19,15 @@ fun main(args: Array<String>) {
     var nanoTime: Long = 0
     measureNanoTime {
         jbinTransaction { db ->
-            db.getTable("users").apply { createIfNotExists() }
+            db.getTable("users").apply { create() }
 
 
             for (k in 1..100) {
                 for (i in 1..150) {
-                    val table = db.getTable("users").apply { createIfNotExists() }
+                    val table = db.getTable("users").apply { create() }
                     val users = (1..100).map {
                         val id = UUID.randomUUID().toString().replace("-", "")
-                        mapOf("_id" to id, "name" to "Magnus", path to ids[random.nextInt(ids.size)]).toDocument()
+                        mapOf(ID_PATH to id, "name" to "Magnus", path to ids[random.nextInt(ids.size)]).toDocument()
                     }
                     table.insert(users)
                 }

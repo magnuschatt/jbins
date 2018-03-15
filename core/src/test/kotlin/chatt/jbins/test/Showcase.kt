@@ -1,25 +1,22 @@
 package chatt.jbins.test
 
+import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.*
-import chatt.jbins.test.utils.jbinTransaction
-import chatt.jbins.test.utils.newTestTable
+import chatt.jbins.test.utils.withTestTable
 import chatt.jbins.utils.document
 import org.junit.Assert.*
 import org.junit.Test
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 class Showcase {
 
     @Test
-    fun `test insert, select, replace, and delete`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test insert, select, replace, and delete`() = withTestTable { table ->
         val id = "test-user"
-        val doc1 = document("_id" to id, "name" to "Magnus", "age" to 27)
-        val doc2 = document("_id" to id, "name" to "Magnus", "age" to 28)
+        val doc1 = document(ID_PATH to id, "name" to "Magnus", "age" to 27)
+        val doc2 = document(ID_PATH to id, "name" to "Magnus", "age" to 28)
 
         table.insert(doc1)
         assertEquals(doc1, table.selectOneById(id))
@@ -32,12 +29,10 @@ class Showcase {
     }
 
     @Test
-    fun `test replace one where`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test replace one where`() = withTestTable { table ->
         val id = "test-user-where"
-        val doc1 = document("_id" to id, "name" to "Magnus", "age" to 27)
-        val doc2 = document("_id" to id, "name" to "Magnus", "age" to 28)
+        val doc1 = document(ID_PATH to id, "name" to "Magnus", "age" to 27)
+        val doc2 = document(ID_PATH to id, "name" to "Magnus", "age" to 28)
 
         table.insert(doc1)
         assertEquals(doc1, table.selectOneById(id))
@@ -53,9 +48,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select all`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select all`() = withTestTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
@@ -64,14 +57,10 @@ class Showcase {
         assertTrue(all.contains(user1))
         assertTrue(all.contains(user2))
         assertEquals(2, all.size)
-
-        table.delete(user1, user2)
     }
 
     @Test
-    fun `test select by equals`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by equals`() = withTestTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
@@ -79,14 +68,10 @@ class Showcase {
         val returned = table.selectWhere(Match("name", EQ, "Magnus"))
         assertEquals(user1, returned.first())
         assertEquals(1, returned.size)
-
-        table.delete(user1, user2)
     }
 
     @Test
-    fun `test select by or-filter`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by or-filter`() = withTestTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Bob", "age" to 20)
         val user3 = document("name" to "Jens", "age" to 19)
@@ -101,14 +86,10 @@ class Showcase {
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertEquals(2, returned.size)
-
-        table.delete(user1, user2, user3)
     }
 
     @Test
-    fun `test select by and-filter`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by and-filter`() = withTestTable { table ->
         val user1 = document("name" to "Kim", "gender" to "female")
         val user2 = document("name" to "Kim", "gender" to "male")
         val user3 = document("name" to "Jens", "gender" to "female")
@@ -122,14 +103,11 @@ class Showcase {
         val returned = table.selectWhere(filter)
         assertEquals(1, returned.size)
         assertEquals(user1, returned.first())
-
-        table.delete(user1, user2, user3)
     }
 
     @Test
-    fun `test select by equals any in array`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by equals any in array`() = withTestTable { table ->
+        
         val biker1 = document(
                 "name" to "Harvey",
                 "color" to arrayOf("black", "blue")
@@ -143,13 +121,10 @@ class Showcase {
         val returned = table.selectWhere(Match("color[]", EQ, "red"))
         assertEquals(biker2, returned.first())
         assertEquals(1, returned.size)
-
-        table.delete(biker1, biker2)
     }
 
     @Test
-    fun `test select by equals in nested object`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
+    fun `test select by equals in nested object`() = withTestTable { table ->
 
         val anim1 = document(
                 "name" to "Boson",
@@ -178,13 +153,10 @@ class Showcase {
         val returned = table.selectWhere(filter)
         assertEquals(anim2, returned.first())
         assertEquals(1, returned.size)
-
-        table.delete(anim1, anim2)
     }
 
     @Test
-    fun `test select by equals in nested object and array`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
+    fun `test select by equals in nested object and array`() = withTestTable { table ->
 
         val anim1 = document(
                 "name" to "Boson",
@@ -223,13 +195,10 @@ class Showcase {
         val returned = table.selectWhere(filter)
         assertEquals(anim1, returned.first())
         assertEquals(1, returned.size)
-
-        table.delete(anim1, anim2)
     }
 
     @Test
-    fun `test select by date range`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
+    fun `test select by date range`() = withTestTable { table ->
 
         val sf = SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss")
         val date1 = sf.format(GregorianCalendar(1990, 1, 1).time)
@@ -256,13 +225,10 @@ class Showcase {
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
         assertEquals(3, returned.size)
-
-        table.delete(user1, user2, user3, user4, user5)
     }
 
     @Test
-    fun `test select by number range`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
+    fun `test select by number range`() = withTestTable { table ->
 
         val user1 = document("name" to "Kim", "number" to 1)
         val user2 = document("name" to "Bob", "number" to 2.023)
@@ -282,18 +248,12 @@ class Showcase {
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
         assertEquals(3, returned.size)
-
-        table.delete(user1, user2, user3, user4, user5)
     }
 
     @Test
-    fun `test patch where`(): Unit = jbinTransaction { db ->
-
+    fun `test patch where`() = withTestTable { table ->
         // arrange
-        val table = db.newTestTable()
-        val people = listOf("Kim", "Bob", "Bob", "John", "Ida")
-                .map { document("name" to it) }
-
+        val people = listOf("Kim", "Bob", "Bob", "John", "Ida").map { document("name" to it) }
         table.insert(people)
 
         // act
@@ -304,15 +264,10 @@ class Showcase {
 
         // assert
         assertEquals(2, numUpdated)
-
-        // clean
-        table.delete(people)
     }
 
     @Test
-    fun `test select by number any in array`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by number any in array`() = withTestTable { table ->
         val user1 = document("name" to "Kim", "number" to arrayOf(1, 42))
         val user2 = document("name" to "Bob", "number" to arrayOf(-1, 42))
         val user3 = document("name" to "Hans", "number" to arrayOf(-31, 1))
@@ -328,14 +283,10 @@ class Showcase {
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
         assertEquals(3, returned.size)
-
-        table.delete(user1, user2, user3, user4, user5)
     }
 
     @Test
-    fun `test select by number all in array`(): Unit = jbinTransaction { db ->
-        val table = db.newTestTable()
-
+    fun `test select by number all in array`() = withTestTable { table ->
         val user1 = document("name" to "Kim", "number" to arrayOf(1, -42))
         val user2 = document("name" to "Bob", "number" to arrayOf(-1, -42))
         val user3 = document("name" to "Hans", "number" to arrayOf(-31, -1))
@@ -351,8 +302,6 @@ class Showcase {
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
         assertEquals(3, returned.size)
-
-        table.delete(user1, user2, user3, user4, user5)
     }
 
 }

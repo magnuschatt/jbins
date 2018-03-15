@@ -1,5 +1,12 @@
 package chatt.jbins
 
+import chatt.jbins.JbinDocument.Companion.ID_PATH
+import chatt.jbins.JbinFilter.*
+import chatt.jbins.JbinFilter.Comparator.EQ
+import chatt.jbins.utils.PostgresFunction
+import chatt.jbins.utils.getPostgresFunction
+import chatt.jbins.utils.splitToElements
+
 data class JbinTable(private val name: String,
                      private val database: JbinDatabase) {
 
@@ -7,8 +14,15 @@ data class JbinTable(private val name: String,
     private val idColumnDef = "id VARCHAR($idSize) PRIMARY KEY"
     private val bodyColumnDef = "body JSONB NOT NULL"
 
-    fun createIfNotExists() {
-        val sql = "CREATE TABLE IF NOT EXISTS \"$name\" ($idColumnDef, $bodyColumnDef)"
+    fun create(ifNotExists: Boolean = true) {
+        val ifNotExistsPart = if (ifNotExists) "IF NOT EXISTS" else ""
+        val sql = "CREATE TABLE $ifNotExistsPart \"$name\" ($idColumnDef, $bodyColumnDef)"
+        database.executeUpdate(sql)
+    }
+
+    fun drop(ifExists: Boolean = true) {
+        val ifNotExistsPart = if (ifExists) "IF EXISTS" else ""
+        val sql = "DROP TABLE $ifNotExistsPart \"$name\""
         database.executeUpdate(sql)
     }
 
@@ -21,27 +35,25 @@ data class JbinTable(private val name: String,
         database.executeUpdate(sql, params)
     }
 
-    fun replaceOne(document: JbinDocument): Boolean {
-        val sql = "UPDATE \"$name\" SET body = CAST(? AS JSONB) WHERE id = ?"
-        val params = listOf(document.body, document.id)
-        return database.executeUpdate(sql, params) == 1
-    }
-
-    fun replaceOneWhere(document: JbinDocument, filter: JbinFilter): Boolean {
-        val translation = JbinFilterTranslator.translate(filter)
+    fun replaceOne(document: JbinDocument) = replaceOneWhere(document, null)
+    fun replaceOneWhere(document: JbinDocument, filter: JbinFilter?): Boolean {
+        val idMatch = Match(ID_PATH, EQ, document.id)
+        val andFilter = if (filter == null) idMatch else And(idMatch, filter)
+        val translation = JbinFilterTranslator.translate(andFilter)
         createFunctionsIfNotExists(translation.functions)
-        val sql = "UPDATE \"$name\" SET body = CAST(? AS JSONB) WHERE id = ? AND ${translation.sql}"
-        val params = listOf(document.body, document.id) + translation.params
+
+        val sql = "UPDATE \"$name\" SET body = CAST(? AS JSONB) WHERE ${translation.sql}"
+        val params = listOf(document.body) + translation.params
         return database.executeUpdate(sql, params) == 1
     }
 
-    fun patchWhere(filter: JbinFilter, path: String, newValue: String): Int {
+    fun patchWhere(filter: JbinFilter?, path: String, newValue: String): Int {
         val translation = JbinFilterTranslator.translate(filter)
         createFunctionsIfNotExists(translation.functions)
         val elements = splitToElements(path)
 
         if (elements.any { it.isArray }) {
-            throw IllegalArgumentException("Arrays not allowed in updateWhere path: " + path)
+            throw IllegalArgumentException("Arrays not allowed in updateWhere path: $path")
         }
 
         val pathPart = elements.joinToString(separator = ",", prefix = "{", postfix = "}") { it.name }
@@ -50,39 +62,29 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params)
     }
 
-    fun patchById(vararg ids: String, path: String, newValue: String): Int = patchById(ids.toList(), path, newValue)
-    fun patchById(ids: Collection<String>, path: String, newValue: String): Int {
-        return 0
-    }
-
     fun delete(vararg documents: JbinDocument): Int = delete(documents.toList())
     fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
     fun deleteById(vararg ids: String): Int = deleteById(ids.toList())
-    private fun deleteById(ids: Collection<String>): Int {
+    fun deleteById(ids: Collection<String>): Int {
         if (ids.isEmpty()) return 0
-        val whereSql = ids.joinToString(separator = " OR ", transform = { "id = ?" })
-        val sql = "DELETE FROM \"$name\" WHERE $whereSql"
-        val params = ids.toList()
+        return deleteWhere(Or(ids.map { Match(ID_PATH, EQ, it) }))
+    }
+
+    fun deleteAll() = deleteWhere(null)
+    fun deleteWhere(filter: JbinFilter?): Int {
+        val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
+        createFunctionsIfNotExists(functions)
+        val sql = "DELETE FROM \"$name\" WHERE $filterSql"
         return database.executeUpdate(sql, params)
     }
 
-    fun selectOneById(id: String): JbinDocument? {
-        val sql = "SELECT CAST(body AS TEXT) FROM \"$name\" WHERE id = ?"
-        val params = listOf(id)
-        val body = database.executeQuery(sql, params).firstOrNull() as String?
-        return if (body == null) null else JbinDocument(id, body)
-    }
-
-    fun selectWhere(filter: JbinFilter): List<JbinDocument> {
+    fun selectOneById(id: String): JbinDocument? = selectWhere(Match(ID_PATH, EQ, id)).firstOrNull()
+    fun selectAll(): List<JbinDocument> = selectWhere(null)
+    fun selectWhere(filter: JbinFilter?): List<JbinDocument> {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
         createFunctionsIfNotExists(functions)
         val sql = "SELECT id, CAST(body AS TEXT) FROM \"$name\" WHERE $filterSql"
         return database.executeQuery(sql, params).toDocuments()
-    }
-
-    fun selectAll(): List<JbinDocument> {
-        val sql = "SELECT id, CAST(body AS TEXT) FROM \"$name\""
-        return database.executeQuery(sql, emptyList()).toDocuments()
     }
 
     fun createIndex(path: String) {

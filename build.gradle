@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.21'
+    ext.kotlin_version = '1.2.30'
     ext.postgres_driver_version = '42.1.4'
     ext.junit_version = '4.12'
     ext.hibernate_version = '5.2.10.Final'
