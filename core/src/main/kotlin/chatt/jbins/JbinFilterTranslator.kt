@@ -10,12 +10,17 @@ object JbinFilterTranslator {
 
     private val empty = Translation("true", emptyList(), emptyList())
 
+    data class Translation(val sql: String,
+                           val params: List<String>,
+                           val functions: List<PostgresFunction>)
+
     fun translate(filter: JbinFilter?): Translation {
         return when (filter) {
             null -> empty
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
             is JbinFilter.Match -> translateMatch(filter)
+            is JbinFilter.Missing -> translateMissing(filter)
         }
     }
 
@@ -72,8 +77,17 @@ object JbinFilterTranslator {
         return Translation(sql, listOf(value), listOf(func))
     }
 
-    data class Translation(val sql: String,
-                           val params: List<String>,
-                           val functions: List<PostgresFunction>)
+    private fun translateMissing(filter: JbinFilter.Missing): Translation {
+        val func = getPostgresFunction(filter.path)
+        val elements = splitToElements(filter.path)
+
+        val sql = if (elements.any { it.isArray }) {
+            "CAST(ARRAY[] AS text[]) = ${func.name}(body)" // todo: needs a test
+        } else {
+            "${func.name}(body) IS NULL"
+        }
+
+        return Translation(sql, emptyList(), listOf(func))
+    }
 
 }

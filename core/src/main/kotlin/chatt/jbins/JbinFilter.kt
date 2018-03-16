@@ -15,6 +15,8 @@ sealed class JbinFilter {
                      val value: Any,
                      val matchAll: Boolean = false) : JbinFilter()
 
+    data class Missing(val path: String) : JbinFilter()
+
     enum class Comparator {
         EQ, NEQ, GT, GTE, LT, LTE
     }

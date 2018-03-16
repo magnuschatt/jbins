@@ -7,7 +7,7 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder
 import org.hibernate.cfg.Configuration
 import java.util.*
 
-const val DB_URL = "jdbc:postgresql://docker:5432/jbins"
+const val DB_URL = "jdbc:postgresql://docker:5432/fhir"
 const val DB_USER = "postgres"
 const val DB_PASS = "redpie"
 const val POSTGRES_DRIVER_CLASS = "org.postgresql.Driver"

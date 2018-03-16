@@ -3,9 +3,12 @@ package chatt.jbins.test
 import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.*
+import chatt.jbins.test.utils.jbinTransaction
+import chatt.jbins.test.utils.newTestTable
 import chatt.jbins.test.utils.withTestTable
 import chatt.jbins.utils.document
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import java.text.SimpleDateFormat
 import java.util.*
@@ -302,6 +305,55 @@ class Showcase {
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
         assertEquals(3, returned.size)
+    }
+
+    @Test
+    fun `test select by missing field`() = withTestTable { table ->
+        val user1 = document("name" to "Kim", "attr" to "bob")
+        val user2 = document("name" to "Bob")
+        val user3 = document("name" to "Hans")
+        val user4 = document("name" to "John", "attr" to "lol")
+        val user5 = document("name" to "Ida", "attr" to "rofl")
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val filter = Missing("attr")
+
+        val returned = table.selectWhere(filter)
+        assertTrue(returned.contains(user2))
+        assertTrue(returned.contains(user3))
+        assertEquals(2, returned.size)
+    }
+
+    @Test
+    @Ignore("not done")
+    fun `test select by joined attribute`() = jbinTransaction { db ->
+
+        val buildings = db.newTestTable()
+        val people = db.newTestTable()
+
+        val building1 = document("color" to "reg")
+        val building2 = document("color" to "green")
+        val building3 = document("color" to "blue")
+
+        val person1 = document("name" to "John", "building" to building1.id)
+        val person2 = document("name" to "Paul", "building" to building1.id)
+        val person3 = document("name" to "Homer", "building" to building2.id)
+        val person4 = document("name" to "Louis", "building" to building2.id)
+        val person5 = document("name" to "Bart", "building" to building3.id)
+
+        buildings.insert(building1, building2, building3)
+        people.insert(person1, person2, person3, person4, person5)
+
+        val filter = Match("number[]", LTE, 0, matchAll = true)
+
+        val returned = people.selectWhere(filter)
+        assertTrue(returned.contains(person3))
+        assertTrue(returned.contains(person4))
+        assertEquals(2, returned.size)
+
+        buildings.drop()
+        people.drop()
     }
 
 }

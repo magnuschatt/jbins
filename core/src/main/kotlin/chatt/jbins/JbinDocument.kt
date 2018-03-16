@@ -4,7 +4,7 @@ import chatt.jbins.utils.toMap
 
 data class JbinDocument(val id: String, val body: String) {
 
-    private val asMap: Map<String, Any> by lazy {
+    val asMap: Map<String, Any> by lazy {
         body.toMap().toMutableMap().also { it[ID_PATH] = id }
     }
 
