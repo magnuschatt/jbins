@@ -317,12 +317,12 @@ class Showcase {
 
         table.insert(user1, user2, user3, user4, user5)
 
-        val returned1 = table.selectWhere(IsEmpty("attr", false))
+        val returned1 = table.selectWhere(IsEmpty("attr", true))
         assertTrue(returned1.contains(user2))
         assertTrue(returned1.contains(user3))
         assertEquals(2, returned1.size)
 
-        val returned2 = table.selectWhere(IsEmpty("attr", true))
+        val returned2 = table.selectWhere(IsEmpty("attr", false))
         assertTrue(returned2.contains(user1))
         assertTrue(returned2.contains(user4))
         assertTrue(returned2.contains(user5))
@@ -339,12 +339,12 @@ class Showcase {
 
         table.insert(user1, user2, user3, user4, user5)
 
-        val returned1 = table.selectWhere(IsEmpty("attr[]", false))
+        val returned1 = table.selectWhere(IsEmpty("attr[]", true))
         assertTrue(returned1.contains(user2))
         assertTrue(returned1.contains(user3))
         assertEquals(2, returned1.size)
 
-        val returned2 = table.selectWhere(IsEmpty("attr[]", true))
+        val returned2 = table.selectWhere(IsEmpty("attr[]", false))
         assertTrue(returned2.contains(user1))
         assertTrue(returned2.contains(user4))
         assertTrue(returned2.contains(user5))
