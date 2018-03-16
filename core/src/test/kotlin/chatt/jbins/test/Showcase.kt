@@ -308,7 +308,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by missing field`() = withTestTable { table ->
+    fun `test select by whether or not field exists`() = withTestTable { table ->
         val user1 = document("name" to "Kim", "attr" to "bob")
         val user2 = document("name" to "Bob")
         val user3 = document("name" to "Hans")
@@ -317,12 +317,38 @@ class Showcase {
 
         table.insert(user1, user2, user3, user4, user5)
 
-        val filter = Missing("attr")
+        val returned1 = table.selectWhere(IsEmpty("attr", false))
+        assertTrue(returned1.contains(user2))
+        assertTrue(returned1.contains(user3))
+        assertEquals(2, returned1.size)
 
-        val returned = table.selectWhere(filter)
-        assertTrue(returned.contains(user2))
-        assertTrue(returned.contains(user3))
-        assertEquals(2, returned.size)
+        val returned2 = table.selectWhere(IsEmpty("attr", true))
+        assertTrue(returned2.contains(user1))
+        assertTrue(returned2.contains(user4))
+        assertTrue(returned2.contains(user5))
+        assertEquals(3, returned2.size)
+    }
+
+    @Test
+    fun `test select by whether or not field in array exists`() = withTestTable { table ->
+        val user1 = document("name" to "Kim", "attr" to listOf("bob"))
+        val user2 = document("name" to "Bob")
+        val user3 = document("name" to "Hans")
+        val user4 = document("name" to "John", "attr" to listOf("lol"))
+        val user5 = document("name" to "Ida", "attr" to listOf("rofl"))
+
+        table.insert(user1, user2, user3, user4, user5)
+
+        val returned1 = table.selectWhere(IsEmpty("attr[]", false))
+        assertTrue(returned1.contains(user2))
+        assertTrue(returned1.contains(user3))
+        assertEquals(2, returned1.size)
+
+        val returned2 = table.selectWhere(IsEmpty("attr[]", true))
+        assertTrue(returned2.contains(user1))
+        assertTrue(returned2.contains(user4))
+        assertTrue(returned2.contains(user5))
+        assertEquals(3, returned2.size)
     }
 
     @Test

@@ -20,7 +20,7 @@ object JbinFilterTranslator {
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
             is JbinFilter.Match -> translateMatch(filter)
-            is JbinFilter.Missing -> translateMissing(filter)
+            is JbinFilter.IsEmpty -> translateMissing(filter)
         }
     }
 
@@ -77,14 +77,16 @@ object JbinFilterTranslator {
         return Translation(sql, listOf(value), listOf(func))
     }
 
-    private fun translateMissing(filter: JbinFilter.Missing): Translation {
+    private fun translateMissing(filter: JbinFilter.IsEmpty): Translation {
         val func = getPostgresFunction(filter.path)
         val elements = splitToElements(filter.path)
 
         val sql = if (elements.any { it.isArray }) {
-            "CAST(ARRAY[] AS text[]) = ${func.name}(body)" // todo: needs a test
+            val operator = if (filter.isEmpty) "=" else "<>"
+            "CAST(ARRAY[] AS text[]) $operator ${func.name}(body)"
         } else {
-            "${func.name}(body) IS NULL"
+            val operator = if (filter.isEmpty) "IS NULL" else "IS NOT NULL"
+            "${func.name}(body) $operator"
         }
 
         return Translation(sql, emptyList(), listOf(func))
