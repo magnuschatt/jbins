@@ -1,5 +1,5 @@
+apply plugin: 'java'
 apply plugin: 'kotlin'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 1.8
 
@@ -14,6 +14,27 @@ dependencies {
     testCompile "junit:junit:$junit_version"
 }
 
-shadowJar {
+jar {
     baseName = 'jbins'
+    from sourceSets.main.allSource
+    from javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    group 'build'
+    classifier = 'sources'
+    baseName = 'jbins'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    group 'build'
+    classifier = 'javadoc'
+    baseName = 'jbins'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
 }

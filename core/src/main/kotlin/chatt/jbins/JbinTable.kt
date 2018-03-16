@@ -78,7 +78,9 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params)
     }
 
-    fun selectOneById(id: String): JbinDocument? = selectWhere(Match(ID_PATH, EQ, id)).firstOrNull()
+    fun selectOneById(id: String): JbinDocument? = selectById(id).firstOrNull()
+    fun selectById(vararg ids: String): List<JbinDocument> = selectById(ids.toList())
+    fun selectById(ids: Collection<String>): List<JbinDocument> = selectWhere(Or(ids.map { Match(ID_PATH, EQ, it) }))
     fun selectAll(): List<JbinDocument> = selectWhere(null)
     fun selectWhere(filter: JbinFilter?): List<JbinDocument> {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(filter)
