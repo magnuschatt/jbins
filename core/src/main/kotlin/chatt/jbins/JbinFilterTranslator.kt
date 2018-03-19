@@ -2,9 +2,7 @@ package chatt.jbins
 
 import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter.Comparator.*
-import chatt.jbins.utils.PostgresFunction
-import chatt.jbins.utils.getPostgresFunction
-import chatt.jbins.utils.splitToElements
+import chatt.jbins.utils.*
 
 object JbinFilterTranslator {
 
@@ -48,6 +46,8 @@ object JbinFilterTranslator {
 
         // signs has to be flipped so they can work with the 'ANY' function in postgresql
         val comparator = when (filter.comparator) {
+            LIKE -> LIKE_OPERATOR
+            ILIKE -> ILIKE_OPERATOR
             EQ -> "="
             NEQ -> "!="
             GT -> "<"

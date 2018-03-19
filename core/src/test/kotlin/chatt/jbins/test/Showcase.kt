@@ -5,7 +5,7 @@ import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.*
 import chatt.jbins.test.utils.jbinTransaction
 import chatt.jbins.test.utils.newTestTable
-import chatt.jbins.test.utils.withTestTable
+import chatt.jbins.test.utils.withTempTable
 import chatt.jbins.utils.document
 import org.junit.Assert.*
 import org.junit.Ignore
@@ -16,7 +16,7 @@ import java.util.*
 class Showcase {
 
     @Test
-    fun `test insert, select, replace, and delete`() = withTestTable { table ->
+    fun `test insert, select, replace, and delete`() = withTempTable { table ->
         val id = "test-user"
         val doc1 = document(ID_PATH to id, "name" to "Magnus", "age" to 27)
         val doc2 = document(ID_PATH to id, "name" to "Magnus", "age" to 28)
@@ -32,7 +32,7 @@ class Showcase {
     }
 
     @Test
-    fun `test replace one where`() = withTestTable { table ->
+    fun `test replace one where`() = withTempTable { table ->
         val id = "test-user-where"
         val doc1 = document(ID_PATH to id, "name" to "Magnus", "age" to 27)
         val doc2 = document(ID_PATH to id, "name" to "Magnus", "age" to 28)
@@ -51,7 +51,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select all`() = withTestTable { table ->
+    fun `test select all`() = withTempTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
@@ -63,7 +63,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by equals`() = withTestTable { table ->
+    fun `test select by equals`() = withTempTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
@@ -74,7 +74,36 @@ class Showcase {
     }
 
     @Test
-    fun `test select by or-filter`() = withTestTable { table ->
+    fun `test select by like`() = withTempTable { table ->
+        val user1 = document("name" to "Mag", "age" to 27)
+        val user2 = document("name" to "Magnesium", "age" to 27)
+        val user3 = document("name" to "Nag", "age" to 20)
+        table.insert(user1, user2, user3)
+
+        assertEquals(0, table.selectWhere(Match("name", LIKE, "mag%")).size)
+        val returned = table.selectWhere(Match("name", LIKE, "Mag%"))
+        assertTrue(returned.contains(user1))
+        assertTrue(returned.contains(user2))
+        assertEquals(2, returned.size)
+        assertEquals(3, table.selectWhere(Match("name", LIKE, "%ag%")).size)
+    }
+
+    @Test
+    fun `test select by case insensitive like`() = withTempTable { table ->
+        val user1 = document("name" to "Mag", "age" to 27)
+        val user2 = document("name" to "Magnesium", "age" to 27)
+        val user3 = document("name" to "Nag", "age" to 20)
+        table.insert(user1, user2, user3)
+
+        val returned = table.selectWhere(Match("name", ILIKE, "mag%"))
+        assertTrue(returned.contains(user1))
+        assertTrue(returned.contains(user2))
+        assertEquals(2, returned.size)
+        assertEquals(3, table.selectWhere(Match("name", ILIKE, "%Ag%")).size)
+    }
+
+    @Test
+    fun `test select by or-filter`() = withTempTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Bob", "age" to 20)
         val user3 = document("name" to "Jens", "age" to 19)
@@ -92,7 +121,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by and-filter`() = withTestTable { table ->
+    fun `test select by and-filter`() = withTempTable { table ->
         val user1 = document("name" to "Kim", "gender" to "female")
         val user2 = document("name" to "Kim", "gender" to "male")
         val user3 = document("name" to "Jens", "gender" to "female")
@@ -109,7 +138,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by equals any in array`() = withTestTable { table ->
+    fun `test select by equals any in array`() = withTempTable { table ->
         
         val biker1 = document(
                 "name" to "Harvey",
@@ -127,7 +156,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by equals in nested object`() = withTestTable { table ->
+    fun `test select by equals in nested object`() = withTempTable { table ->
 
         val anim1 = document(
                 "name" to "Boson",
@@ -159,7 +188,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by equals in nested object and array`() = withTestTable { table ->
+    fun `test select by equals in nested object and array`() = withTempTable { table ->
 
         val anim1 = document(
                 "name" to "Boson",
@@ -201,7 +230,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by date range`() = withTestTable { table ->
+    fun `test select by date range`() = withTempTable { table ->
 
         val sf = SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss")
         val date1 = sf.format(GregorianCalendar(1990, 1, 1).time)
@@ -231,7 +260,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by number range`() = withTestTable { table ->
+    fun `test select by number range`() = withTempTable { table ->
 
         val user1 = document("name" to "Kim", "number" to 1)
         val user2 = document("name" to "Bob", "number" to 2.023)
@@ -254,7 +283,7 @@ class Showcase {
     }
 
     @Test
-    fun `test patch where`() = withTestTable { table ->
+    fun `test patch where`() = withTempTable { table ->
         // arrange
         val people = listOf("Kim", "Bob", "Bob", "John", "Ida").map { document("name" to it) }
         table.insert(people)
@@ -270,7 +299,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by number any in array`() = withTestTable { table ->
+    fun `test select by number any in array`() = withTempTable { table ->
         val user1 = document("name" to "Kim", "number" to arrayOf(1, 42))
         val user2 = document("name" to "Bob", "number" to arrayOf(-1, 42))
         val user3 = document("name" to "Hans", "number" to arrayOf(-31, 1))
@@ -289,7 +318,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by number all in array`() = withTestTable { table ->
+    fun `test select by number all in array`() = withTempTable { table ->
         val user1 = document("name" to "Kim", "number" to arrayOf(1, -42))
         val user2 = document("name" to "Bob", "number" to arrayOf(-1, -42))
         val user3 = document("name" to "Hans", "number" to arrayOf(-31, -1))
@@ -308,7 +337,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by whether or not field exists`() = withTestTable { table ->
+    fun `test select by whether or not field exists`() = withTempTable { table ->
         val user1 = document("name" to "Kim", "attr" to "bob")
         val user2 = document("name" to "Bob")
         val user3 = document("name" to "Hans")
@@ -330,7 +359,7 @@ class Showcase {
     }
 
     @Test
-    fun `test select by whether or not field in array exists`() = withTestTable { table ->
+    fun `test select by whether or not field in array exists`() = withTempTable { table ->
         val user1 = document("name" to "Kim", "attr" to listOf("bob"))
         val user2 = document("name" to "Bob")
         val user3 = document("name" to "Hans")

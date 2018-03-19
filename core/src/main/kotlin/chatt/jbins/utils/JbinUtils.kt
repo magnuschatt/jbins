@@ -3,6 +3,8 @@ package chatt.jbins.utils
 import chatt.jbins.JsonbFunctions
 
 const val ARRAY_MARKER = "[]"
+const val LIKE_OPERATOR = "<~<"
+const val ILIKE_OPERATOR = "<~~<"
 
 data class PathElement(val name: String,
                        val isArray: Boolean)

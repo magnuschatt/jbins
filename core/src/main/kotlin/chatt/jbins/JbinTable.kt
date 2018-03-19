@@ -104,10 +104,7 @@ data class JbinTable(private val name: String,
     private fun createFunctionsIfNotExists(functions: Iterable<PostgresFunction>) {
         functions.forEach { func ->
             if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
-                val count = database.executeQuery("SELECT COUNT(*) FROM pg_proc WHERE proname = ?", listOf(func.name))
-                if (count.first() == 0.toBigInteger()) {
-                    database.executeUpdate(func.sql)
-                }
+                if (!database.functionExists(func.name)) database.executeUpdate(func.sql)
                 JbinDatabase.createdFunctionsCache.add(func.name)
             }
         }

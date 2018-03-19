@@ -19,7 +19,7 @@ sealed class JbinFilter {
                        val isEmpty: Boolean) : JbinFilter()
 
     enum class Comparator {
-        EQ, NEQ, GT, GTE, LT, LTE
+        EQ, NEQ, GT, GTE, LT, LTE, LIKE, ILIKE
     }
 
 }

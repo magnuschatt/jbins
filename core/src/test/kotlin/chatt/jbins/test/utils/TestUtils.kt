@@ -13,7 +13,7 @@ fun JbinDatabase.newTestTable(): JbinTable {
     return getTable("test_table${tableCounter++}").apply { create() }
 }
 
-fun withTestTable(block: (JbinTable) -> Unit) = jbinTransaction { db ->
+fun withTempTable(block: (JbinTable) -> Unit) = jbinTransaction { db ->
     val table = db.newTestTable()
     block(table)
     table.drop()
