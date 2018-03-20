@@ -3,6 +3,8 @@ package chatt.jbins.test
 import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.*
+import chatt.jbins.SortDirection.ASC
+import chatt.jbins.SortDirection.DESC
 import chatt.jbins.test.utils.jbinTransaction
 import chatt.jbins.test.utils.newTestTable
 import chatt.jbins.test.utils.withTempTable
@@ -40,10 +42,10 @@ class Showcase {
         table.insert(doc1)
         assertEquals(doc1, table.selectOneById(id))
 
-        assertFalse(table.replaceOneWhere(doc2, Match("age", EQ, 40))) // should fail
+        assertFalse(table.replaceOne(doc2, Match("age", EQ, 40))) // should fail
         assertEquals(doc1, table.selectOneById(id))
 
-        assertTrue(table.replaceOneWhere(doc2, Match("age", EQ, 27))) // should succeed
+        assertTrue(table.replaceOne(doc2, Match("age", EQ, 27))) // should succeed
         assertEquals(doc2, table.selectOneById(id))
 
         table.deleteById(id)
@@ -56,10 +58,40 @@ class Showcase {
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
 
-        val all = table.selectAll()
+        val all = table.select()
         assertTrue(all.contains(user1))
         assertTrue(all.contains(user2))
         assertEquals(2, all.size)
+    }
+
+    @Test
+    fun `test select limited`() = withTempTable { table ->
+        val user1 = document("name" to "Magnus", "age" to 27)
+        val user2 = document("name" to "Jens", "age" to 20)
+        val user3 = document("name" to "Bob", "age" to 20)
+        val user4 = document("name" to "Tim", "age" to 20)
+        val user5 = document("name" to "Ed", "age" to 20)
+        val user6 = document("name" to "Ned", "age" to 20)
+        val user7 = document("name" to "Jack", "age" to 20)
+        table.insert(user1, user2, user3, user4, user5, user6, user7)
+
+        assertEquals(1, table.select(limit = 1).size)
+        assertEquals(2, table.select(limit = 2).size)
+        assertEquals(3, table.select(limit = 3).size)
+        assertEquals(4, table.select(limit = 4).size)
+        assertEquals(5, table.select(limit = 5).size)
+    }
+
+    @Test
+    fun `test select and order by`() = withTempTable { table ->
+
+        val sortedUsers = listOf("Aaa", "aaa", "aa", "Aa", "a", "A", "AA", "abc", "ABC", "John", "Paul", "xyz")
+                .sorted()
+                .map { document("name" to it, "age" to 27) }
+        table.insert(sortedUsers.shuffled())
+
+        assertEquals(sortedUsers, table.select(orderBy = listOf("name" to ASC)))
+        assertEquals(sortedUsers.asReversed(), table.select(orderBy = listOf("name" to DESC)))
     }
 
     @Test
@@ -68,7 +100,7 @@ class Showcase {
         val user2 = document("name" to "Jens", "age" to 20)
         table.insert(user1, user2)
 
-        val returned = table.selectWhere(Match("name", EQ, "Magnus"))
+        val returned = table.select(where = Match("name", EQ, "Magnus"))
         assertEquals(user1, returned.first())
         assertEquals(1, returned.size)
     }
@@ -80,12 +112,12 @@ class Showcase {
         val user3 = document("name" to "Nag", "age" to 20)
         table.insert(user1, user2, user3)
 
-        assertEquals(0, table.selectWhere(Match("name", LIKE, "mag%")).size)
-        val returned = table.selectWhere(Match("name", LIKE, "Mag%"))
+        assertEquals(0, table.select(where = Match("name", LIKE, "mag%")).size)
+        val returned = table.select(where = Match("name", LIKE, "Mag%"))
         assertTrue(returned.contains(user1))
         assertTrue(returned.contains(user2))
         assertEquals(2, returned.size)
-        assertEquals(3, table.selectWhere(Match("name", LIKE, "%ag%")).size)
+        assertEquals(3, table.select(where = Match("name", LIKE, "%ag%")).size)
     }
 
     @Test
@@ -95,11 +127,11 @@ class Showcase {
         val user3 = document("name" to "Nag", "age" to 20)
         table.insert(user1, user2, user3)
 
-        val returned = table.selectWhere(Match("name", ILIKE, "mag%"))
+        val returned = table.select(where = Match("name", ILIKE, "mag%"))
         assertTrue(returned.contains(user1))
         assertTrue(returned.contains(user2))
         assertEquals(2, returned.size)
-        assertEquals(3, table.selectWhere(Match("name", ILIKE, "%Ag%")).size)
+        assertEquals(3, table.select(where = Match("name", ILIKE, "%Ag%")).size)
     }
 
     @Test
@@ -114,7 +146,7 @@ class Showcase {
                 Match("name", EQ, "Jens")
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertEquals(2, returned.size)
@@ -132,7 +164,7 @@ class Showcase {
                 Match("gender", EQ, "female")
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertEquals(1, returned.size)
         assertEquals(user1, returned.first())
     }
@@ -150,7 +182,7 @@ class Showcase {
         )
 
         table.insert(biker1, biker2)
-        val returned = table.selectWhere(Match("color[]", EQ, "red"))
+        val returned = table.select(where = Match("color[]", EQ, "red"))
         assertEquals(biker2, returned.first())
         assertEquals(1, returned.size)
     }
@@ -182,7 +214,7 @@ class Showcase {
                 Match("color.animal.leg", EQ, "big")
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertEquals(anim2, returned.first())
         assertEquals(1, returned.size)
     }
@@ -224,7 +256,7 @@ class Showcase {
                 Match("animals[].organs[]", EQ, "beak")
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertEquals(anim1, returned.first())
         assertEquals(1, returned.size)
     }
@@ -252,7 +284,7 @@ class Showcase {
                 Match("date", LTE, date4)
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
@@ -275,7 +307,7 @@ class Showcase {
                 Match("number", LT, 5.2)
         )
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
@@ -289,8 +321,8 @@ class Showcase {
         table.insert(people)
 
         // act
-        val numUpdated = table.patchWhere(
-                filter = Match("name", EQ, "Bob"),
+        val numUpdated = table.patch(
+                where = Match("name", EQ, "Bob"),
                 path = "name",
                 newValue = "Hans")
 
@@ -310,7 +342,7 @@ class Showcase {
 
         val filter = Match("number[]", LTE, 0)
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
@@ -329,7 +361,7 @@ class Showcase {
 
         val filter = Match("number[]", LTE, 0, matchAll = true)
 
-        val returned = table.selectWhere(filter)
+        val returned = table.select(where = filter)
         assertTrue(returned.contains(user2))
         assertTrue(returned.contains(user3))
         assertTrue(returned.contains(user4))
@@ -346,12 +378,12 @@ class Showcase {
 
         table.insert(user1, user2, user3, user4, user5)
 
-        val returned1 = table.selectWhere(IsEmpty("attr", true))
+        val returned1 = table.select(IsEmpty("attr", true))
         assertTrue(returned1.contains(user2))
         assertTrue(returned1.contains(user3))
         assertEquals(2, returned1.size)
 
-        val returned2 = table.selectWhere(IsEmpty("attr", false))
+        val returned2 = table.select(IsEmpty("attr", false))
         assertTrue(returned2.contains(user1))
         assertTrue(returned2.contains(user4))
         assertTrue(returned2.contains(user5))
@@ -368,12 +400,12 @@ class Showcase {
 
         table.insert(user1, user2, user3, user4, user5)
 
-        val returned1 = table.selectWhere(IsEmpty("attr[]", true))
+        val returned1 = table.select(IsEmpty("attr[]", true))
         assertTrue(returned1.contains(user2))
         assertTrue(returned1.contains(user3))
         assertEquals(2, returned1.size)
 
-        val returned2 = table.selectWhere(IsEmpty("attr[]", false))
+        val returned2 = table.select(IsEmpty("attr[]", false))
         assertTrue(returned2.contains(user1))
         assertTrue(returned2.contains(user4))
         assertTrue(returned2.contains(user5))
@@ -402,7 +434,7 @@ class Showcase {
 
         val filter = Match("number[]", LTE, 0, matchAll = true)
 
-        val returned = people.selectWhere(filter)
+        val returned = people.select(where = filter)
         assertTrue(returned.contains(person3))
         assertTrue(returned.contains(person4))
         assertEquals(2, returned.size)

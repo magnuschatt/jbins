@@ -6,15 +6,15 @@ import chatt.jbins.utils.*
 
 object JbinFilterTranslator {
 
-    private val empty = Translation("true", emptyList(), emptyList())
+    private val whereTrue = Translation("true", emptyList(), emptySet())
 
     data class Translation(val sql: String,
                            val params: List<String>,
-                           val functions: List<PostgresFunction>)
+                           val functions: Set<PostgresFunction>)
 
-    fun translate(filter: JbinFilter?): Translation {
+    fun translate(filter: JbinFilter): Translation {
         return when (filter) {
-            null -> empty
+            is JbinFilter.True -> whereTrue
             is JbinFilter.Or -> translateOr(filter)
             is JbinFilter.And -> translateAnd(filter)
             is JbinFilter.Match -> translateMatch(filter)
@@ -23,13 +23,13 @@ object JbinFilterTranslator {
     }
 
     private fun translateList(filters: Collection<JbinFilter>, separator: String): Translation {
-        val children = filters.map { translate(it) }.filterNot { it == empty }
-        if (children.isEmpty()) return empty
+        val children = filters.map { translate(it) }.filterNot { it == whereTrue }
+        if (children.isEmpty()) return whereTrue
         if (children.size == 1) return children.first()
 
         val sql = children.joinToString(separator = separator, prefix = "(", postfix = ")", transform = { it.sql })
         val params = children.flatMap { it.params }
-        val functions = children.flatMap { it.functions }
+        val functions = children.flatMap { it.functions }.toSet()
         return Translation(sql, params, functions)
     }
 
@@ -57,7 +57,7 @@ object JbinFilterTranslator {
         }
 
         if (filter.path == ID_PATH) {
-            return Translation("? $comparator id", listOf(value), emptyList())
+            return Translation("? $comparator id", listOf(value), emptySet())
         }
 
         val func = getPostgresFunction(filter.path)
@@ -74,7 +74,7 @@ object JbinFilterTranslator {
             "? $comparator ${func.name}(body)"
         }
 
-        return Translation(sql, listOf(value), listOf(func))
+        return Translation(sql, listOf(value), setOf(func))
     }
 
     private fun translateMissing(filter: JbinFilter.IsEmpty): Translation {
@@ -89,7 +89,7 @@ object JbinFilterTranslator {
             "${func.name}(body) $operator"
         }
 
-        return Translation(sql, emptyList(), listOf(func))
+        return Translation(sql, emptyList(), setOf(func))
     }
 
 }

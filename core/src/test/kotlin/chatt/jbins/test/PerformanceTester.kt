@@ -42,19 +42,19 @@ fun main(args: Array<String>) {
 
             val filter = JbinFilter.Match(path, EQ, ids[random.nextInt(ids.size)])
             measureNanoTime {
-                val selectWhere = db.getTable("users").selectWhere(filter)
+                val selectWhere = db.getTable("users").select(filter)
                 println("Result size: " + selectWhere.size)
             }
 
             filters.forEach {
-                db.getTable("users").selectWhere(it)
+                db.getTable("users").select(it)
             }
         }
 
         jbinTransaction { db ->
             nanoTime = measureNanoTime {
                 filters.forEachIndexed { i, it ->
-                    db.getTable("users").selectWhere(it)
+                    db.getTable("users").select(it)
                     println("$i/1000")
                 }
             }
