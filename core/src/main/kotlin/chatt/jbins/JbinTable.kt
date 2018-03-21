@@ -101,15 +101,22 @@ data class JbinTable(private val name: String,
         return database.executeQuery(sql, translation.params).toDocuments()
     }
 
-    fun createIndex(path: String) {
-        val elements = splitToElements(path)
-        val func = getPostgresFunction(path)
+    fun createIndex(vararg paths: String) = createIndex(paths.toList())
+    fun createIndex(paths: List<String>) {
 
-        createFunctionsIfNotExists(listOf(func))
+        val functions = paths.map { getPostgresFunction(it) }
+        createFunctionsIfNotExists(functions)
 
-        val arrayIndex = elements.any { it.isArray }
+        val indexName = functions
+                .joinToString(separator = "_\$\$_", transform = { it.name })
+                .replace("jbins_func_", "") + "_jbins_index"
+
+        val indexExpression = functions
+                .joinToString(separator = ", ", transform = { "${it.name}(body)" })
+
+        val arrayIndex = paths.flatMap { splitToElements(it) }.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
-        val sql = "CREATE INDEX IF NOT EXISTS ${func.name}_index ON \"$name\" $ginPart(${func.name}(body))"
+        val sql = "CREATE INDEX IF NOT EXISTS $indexName ON \"$name\" $ginPart($indexExpression)"
         database.executeUpdate(sql)
     }
 
