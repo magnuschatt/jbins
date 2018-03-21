@@ -7,19 +7,19 @@ import chatt.jbins.utils.*
 object JbinFilterTranslator {
 
     private val whereTrue = Translation("true", emptyList(), emptySet())
+    private val whereFalse = Translation("false", emptyList(), emptySet())
 
     data class Translation(val sql: String,
                            val params: List<String>,
                            val functions: Set<PostgresFunction>)
 
-    fun translate(filter: JbinFilter): Translation {
-        return when (filter) {
-            is JbinFilter.True -> whereTrue
-            is JbinFilter.Or -> translateOr(filter)
-            is JbinFilter.And -> translateAnd(filter)
-            is JbinFilter.Match -> translateMatch(filter)
-            is JbinFilter.IsEmpty -> translateMissing(filter)
-        }
+    fun translate(filter: JbinFilter): Translation = when (filter) {
+        is JbinFilter.True -> whereTrue
+        is JbinFilter.False -> whereFalse
+        is JbinFilter.Or -> translateOr(filter)
+        is JbinFilter.And -> translateAnd(filter)
+        is JbinFilter.Match -> translateMatch(filter)
+        is JbinFilter.IsEmpty -> translateMissing(filter)
     }
 
     private fun translateList(filters: Collection<JbinFilter>, separator: String): Translation {
