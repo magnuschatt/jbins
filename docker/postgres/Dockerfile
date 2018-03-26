@@ -2,4 +2,4 @@ FROM postgres:10-alpine
 
 ENV POSTGRES_USER postgres
 ENV POSTGRES_PASSWORD redpie
-ENV POSTGRES_DB jbins
+ENV POSTGRES_DB fhir

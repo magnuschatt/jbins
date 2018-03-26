@@ -45,7 +45,7 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params) == 1
     }
 
-    fun patch(path: String, newValue: String, where: JbinFilter = True()): Int {
+    fun patch(where: JbinFilter = True(), path: String, newJson: String, createMissing: Boolean = true): Int {
         val translation = JbinFilterTranslator.translate(where)
         createFunctionsIfNotExists(translation.functions)
         val elements = splitToElements(path)
@@ -55,8 +55,8 @@ data class JbinTable(private val name: String,
         }
 
         val pathPart = elements.joinToString(separator = ",", prefix = "{", postfix = "}") { it.name }
-        val params = listOf(pathPart, newValue) + translation.params
-        val sql = "UPDATE \"$name\" SET body = jsonb_set(body, CAST(? AS TEXT[]), to_jsonb(?)) WHERE ${translation.sql}"
+        val params = listOf(pathPart, newJson, createMissing) + translation.params
+        val sql = "UPDATE \"$name\" SET body = jsonb_set(body, CAST(? AS TEXT[]), CAST(? AS JSONB), ?) WHERE ${translation.sql}"
         return database.executeUpdate(sql, params)
     }
 

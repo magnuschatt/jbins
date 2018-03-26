@@ -324,10 +324,29 @@ class Showcase {
         val numUpdated = table.patch(
                 where = Match("name", EQ, "Bob"),
                 path = "name",
-                newValue = "Hans")
+                newJson = "\"Hans\"")
 
         // assert
         assertEquals(2, numUpdated)
+        assertEquals(0, table.select(where = Match("name", EQ, "Bob")).size)
+        assertEquals(2, table.select(where = Match("name", EQ, "Hans")).size)
+    }
+
+    @Test
+    fun `test patch where complex`() = withTempTable { table ->
+        // arrange
+        val doc1 = document("name" to "m1", "core" to mapOf("color" to "blue"))
+        val doc2 = document("name" to "m2")
+        table.insert(doc1, doc2)
+        assertEquals(1, table.select(IsEmpty("core", false)).size)
+
+        // act
+        val numUpdated = table.patch(path = "core", newJson = """{ "color": "red" }""", createMissing = true)
+
+        // assert
+        assertEquals(2, numUpdated)
+        assertEquals(2, table.select(IsEmpty("core", false)).size)
+        assertEquals(2, table.select(Match("core.color", EQ, "red")).size)
     }
 
     @Test
