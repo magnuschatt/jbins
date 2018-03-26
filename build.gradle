@@ -24,7 +24,7 @@ buildscript {
 
 allprojects {
     group 'chatt.jbins'
-    version '0.7.6'
+    version '0.7.7'
 
     apply plugin: 'idea'
 
