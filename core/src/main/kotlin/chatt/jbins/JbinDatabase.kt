@@ -2,6 +2,7 @@ package chatt.jbins
 
 import chatt.jbins.utils.ILIKE_OPERATOR
 import chatt.jbins.utils.LIKE_OPERATOR
+import chatt.jbins.utils.PostgresFunction
 import mu.KotlinLogging
 import java.util.concurrent.ConcurrentHashMap
 
@@ -38,7 +39,16 @@ data class JbinDatabase(private val adapter: JbinAdapter): JbinAdapter {
         return JbinTable(name, this)
     }
 
-    fun functionExists(funcName: String): Boolean {
+    fun createFunctionsIfNotExists(functions: Iterable<PostgresFunction>) {
+        functions.forEach { func ->
+            if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
+                if (!functionExists(func.name)) executeUpdate(func.sql)
+                JbinDatabase.createdFunctionsCache.add(func.name)
+            }
+        }
+    }
+
+    private fun functionExists(funcName: String): Boolean {
         val count = executeQuery("SELECT COUNT(*) FROM pg_proc WHERE proname = ?", listOf(funcName))
         return count.first() != 0.toBigInteger()
     }

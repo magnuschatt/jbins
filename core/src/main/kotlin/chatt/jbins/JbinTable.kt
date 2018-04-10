@@ -3,7 +3,6 @@ package chatt.jbins
 import chatt.jbins.JbinDocument.Companion.ID_PATH
 import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.EQ
-import chatt.jbins.utils.PostgresFunction
 import chatt.jbins.utils.getPostgresFunction
 import chatt.jbins.utils.splitToElements
 
@@ -38,7 +37,7 @@ data class JbinTable(private val name: String,
     fun replaceOne(document: JbinDocument, where: JbinFilter = True()): Boolean {
         val andFilter = And(Match(ID_PATH, EQ, document.id), where)
         val translation = JbinFilterTranslator.translate(andFilter)
-        createFunctionsIfNotExists(translation.functions)
+        database.createFunctionsIfNotExists(translation.functions)
 
         val sql = "UPDATE \"$name\" SET body = CAST(? AS JSONB) WHERE ${translation.sql}"
         val params = listOf(document.body) + translation.params
@@ -47,7 +46,7 @@ data class JbinTable(private val name: String,
 
     fun patch(where: JbinFilter = True(), path: String, newJson: String, createMissing: Boolean = true): Int {
         val translation = JbinFilterTranslator.translate(where)
-        createFunctionsIfNotExists(translation.functions)
+        database.createFunctionsIfNotExists(translation.functions)
         val elements = splitToElements(path)
 
         if (elements.any { it.isArray }) {
@@ -60,6 +59,8 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params)
     }
 
+    fun delete(vararg documents: JbinDocument): Int = delete(documents.toList())
+    fun delete(documents: Collection<JbinDocument>): Int = deleteById(documents.map { it.id })
     fun deleteById(vararg ids: String): Int = deleteById(ids.toList())
     fun deleteById(ids: Collection<String>): Int {
         if (ids.isEmpty()) return 0
@@ -68,7 +69,7 @@ data class JbinTable(private val name: String,
 
     fun delete(where: JbinFilter = True()): Int {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(where)
-        createFunctionsIfNotExists(functions)
+        database.createFunctionsIfNotExists(functions)
         val sql = "DELETE FROM \"$name\" WHERE $filterSql"
         return database.executeUpdate(sql, params)
     }
@@ -96,7 +97,7 @@ data class JbinTable(private val name: String,
             sql += " LIMIT $limit"
         }
 
-        createFunctionsIfNotExists(functions)
+        database.createFunctionsIfNotExists(functions)
 
         return database.executeQuery(sql, translation.params).toDocuments()
     }
@@ -105,7 +106,7 @@ data class JbinTable(private val name: String,
     fun createIndex(paths: List<String>) {
 
         val functions = paths.map { getPostgresFunction(it) }
-        createFunctionsIfNotExists(functions)
+        database.createFunctionsIfNotExists(functions)
 
         val indexName = functions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
@@ -118,15 +119,6 @@ data class JbinTable(private val name: String,
         val ginPart = if (arrayIndex) "USING GIN " else ""
         val sql = "CREATE INDEX IF NOT EXISTS $indexName ON \"$name\" $ginPart($indexExpression)"
         database.executeUpdate(sql)
-    }
-
-    private fun createFunctionsIfNotExists(functions: Iterable<PostgresFunction>) {
-        functions.forEach { func ->
-            if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
-                if (!database.functionExists(func.name)) database.executeUpdate(func.sql)
-                JbinDatabase.createdFunctionsCache.add(func.name)
-            }
-        }
     }
 
     private fun List<Any>.toDocuments(): List<JbinDocument> {

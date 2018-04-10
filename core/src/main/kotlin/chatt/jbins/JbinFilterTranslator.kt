@@ -8,9 +8,10 @@ object JbinFilterTranslator {
 
     private val whereTrue = Translation("true", emptyList(), emptySet())
     private val whereFalse = Translation("false", emptyList(), emptySet())
+    private enum class Separator { AND, OR }
 
     data class Translation(val sql: String,
-                           val params: List<String>,
+                           val params: List<Any>,
                            val functions: Set<PostgresFunction>)
 
     fun translate(filter: JbinFilter): Translation = when (filter) {
@@ -22,23 +23,57 @@ object JbinFilterTranslator {
         is JbinFilter.IsEmpty -> translateMissing(filter)
     }
 
-    private fun translateList(filters: Collection<JbinFilter>, separator: String): Translation {
-        val children = filters.map { translate(it) }.filterNot { it == whereTrue }
-        if (children.isEmpty()) return whereTrue
+    private fun translateList(filters: Collection<JbinFilter>, separator: Separator): Translation {
+
+        val redundant = when (separator) {
+            Separator.OR -> whereTrue
+            Separator.AND -> whereFalse
+        }
+
+        val children = filters.map { translate(it) }.filterNot { it == redundant }
+        if (children.isEmpty()) return redundant
         if (children.size == 1) return children.first()
 
-        val sql = children.joinToString(separator = separator, prefix = "(", postfix = ")", transform = { it.sql })
+        val sql = children.joinToString(
+                separator = " ${separator.name} ",
+                prefix = "(",
+                postfix = ")",
+                transform = { it.sql }
+        )
+
         val params = children.flatMap { it.params }
         val functions = children.flatMap { it.functions }.toSet()
         return Translation(sql, params, functions)
     }
 
     private fun translateOr(filter: JbinFilter.Or): Translation {
-        return translateList(filter, " OR ")
+
+        // check if we can join the ORs using the IN operator
+        val ins: Map<String, List<Any>> = filter
+                .mapNotNull { it as? JbinFilter.Match }
+                .filter { it.comparator == EQ }
+                .filter { splitToElements(it.path).none { it.isArray } }
+                .groupBy { it.path }
+                .filter { it.value.size > 1 }
+                .mapValues { it.value.map { it.value } }
+
+        if (ins.size == 1 && ins.values.first().size == filter.size) {
+            val path: String = ins.keys.first()
+            val values: List<Any> = ins.values.first()
+
+            return if (path == ID_PATH) {
+                Translation("id IN (?)", listOf(values), emptySet())
+            } else {
+                val func = getPostgresFunction(path)
+                Translation("${func.name}(body) IN (?)", listOf(values), setOf(func))
+            }
+        }
+
+        return translateList(filter, Separator.OR)
     }
 
     private fun translateAnd(filter: JbinFilter.And): Translation {
-        return translateList(filter, " AND ")
+        return translateList(filter, Separator.AND)
     }
 
     private fun translateMatch(filter: JbinFilter.Match): Translation {

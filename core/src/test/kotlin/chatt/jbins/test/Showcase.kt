@@ -65,6 +65,16 @@ class Showcase {
     }
 
     @Test
+    fun `test delete`() = withTempTable { table ->
+        val user1 = document("name" to "Magnus", "age" to 27)
+        val user2 = document("name" to "Jens", "age" to 20)
+        table.insert(user1, user2)
+
+        assertEquals(2, table.select().size)
+        table.delete(user1, user2)
+    }
+
+    @Test
     fun `test select limited`() = withTempTable { table ->
         val user1 = document("name" to "Magnus", "age" to 27)
         val user2 = document("name" to "Jens", "age" to 20)
@@ -347,6 +357,24 @@ class Showcase {
         assertEquals(2, numUpdated)
         assertEquals(2, table.select(IsEmpty("core", false)).size)
         assertEquals(2, table.select(Match("core.color", EQ, "red")).size)
+    }
+
+    @Test
+    fun `test patch null`() = withTempTable { table ->
+        // arrange
+        val people = listOf("Kim", "Bob", "Bob", "John", "Ida").map { document("name" to it) }
+        table.insert(people)
+
+        // act
+        val numUpdated = table.patch(
+                where = Match("name", EQ, "Bob"),
+                path = "name",
+                newJson = "null")
+
+        // assert
+        assertEquals(2, numUpdated)
+        assertEquals(3, table.select(where = IsEmpty("name", false)).size)
+        assertEquals(2, table.select(where = IsEmpty("name", true)).size)
     }
 
     @Test
