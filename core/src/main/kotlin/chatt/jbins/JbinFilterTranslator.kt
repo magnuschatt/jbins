@@ -24,14 +24,8 @@ object JbinFilterTranslator {
     }
 
     private fun translateList(filters: Collection<JbinFilter>, separator: Separator): Translation {
-
-        val redundant = when (separator) {
-            Separator.OR -> whereTrue
-            Separator.AND -> whereFalse
-        }
-
-        val children = filters.map { translate(it) }.filterNot { it == redundant }
-        if (children.isEmpty()) return redundant
+        val children = filters.map { translate(it) }
+        if (children.isEmpty()) return whereTrue
         if (children.size == 1) return children.first()
 
         val sql = children.joinToString(
