@@ -34,7 +34,7 @@ data class JbinTable(private val name: String,
         database.executeUpdate(sql, params)
     }
 
-    fun replaceOne(document: JbinDocument, where: JbinFilter = True()): Boolean {
+    fun replaceOne(document: JbinDocument, where: JbinFilter = True): Boolean {
         val andFilter = And(Match(ID_PATH, EQ, document.id), where)
         val translation = JbinFilterTranslator.translate(andFilter)
         database.createFunctionsIfNotExists(translation.functions)
@@ -44,7 +44,7 @@ data class JbinTable(private val name: String,
         return database.executeUpdate(sql, params) == 1
     }
 
-    fun patch(where: JbinFilter = True(), path: String, newJson: String, createMissing: Boolean = true): Int {
+    fun patch(where: JbinFilter = True, path: String, newJson: String, createMissing: Boolean = true): Int {
         val translation = JbinFilterTranslator.translate(where)
         database.createFunctionsIfNotExists(translation.functions)
         val elements = splitToElements(path)
@@ -67,7 +67,7 @@ data class JbinTable(private val name: String,
         return delete(Or(ids.map { Match(ID_PATH, EQ, it) }))
     }
 
-    fun delete(where: JbinFilter = True()): Int {
+    fun delete(where: JbinFilter = True): Int {
         val (filterSql, params, functions) = JbinFilterTranslator.translate(where)
         database.createFunctionsIfNotExists(functions)
         val sql = "DELETE FROM \"$name\" WHERE $filterSql"
@@ -78,7 +78,7 @@ data class JbinTable(private val name: String,
     fun selectById(vararg ids: String): List<JbinDocument> = selectById(ids.toList())
     fun selectById(ids: Collection<String>): List<JbinDocument> = select(Or(ids.map { Match(ID_PATH, EQ, it) }))
 
-    fun select(where: JbinFilter = True(),
+    fun select(where: JbinFilter = True,
                limit: Int = 0,
                orderBy: List<Pair<String, SortDirection>> = emptyList()): List<JbinDocument> {
 
@@ -102,8 +102,8 @@ data class JbinTable(private val name: String,
         return database.executeQuery(sql, translation.params).toDocuments()
     }
 
-    fun createIndex(vararg paths: String, where: JbinFilter = True()) = createIndex(paths.toList(), where)
-    fun createIndex(paths: List<String>, where: JbinFilter = True()) {
+    fun createIndex(vararg paths: String, where: JbinFilter = True) = createIndex(paths.toList(), where)
+    fun createIndex(paths: List<String>, where: JbinFilter = True) {
 
         val whereTranslation = JbinFilterTranslator.translate(where)
         val indexFunctions = paths.map { getPostgresFunction(it) }
@@ -112,14 +112,14 @@ data class JbinTable(private val name: String,
 
         val indexName = "ix_${name}_jbins_" + indexFunctions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
-                .replace("jbins_func_", "")
+                .replace("jbins_func_", "") + "_${whereTranslation.hashCode()}"
 
         val indexExpression = indexFunctions
                 .joinToString(separator = ", ", transform = { "${it.name}(body)" })
 
         val arrayIndex = paths.flatMap { splitToElements(it) }.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
-        val wherePart = if (where is True) "" else "WHERE ${whereTranslation.sql}"
+        val wherePart = if (where === True) "" else "WHERE ${whereTranslation.sql}"
         val sql = "CREATE INDEX IF NOT EXISTS \"$indexName\" ON \"$name\" $ginPart($indexExpression) $wherePart;"
         database.executeUpdate(sql, whereTranslation.params)
     }
