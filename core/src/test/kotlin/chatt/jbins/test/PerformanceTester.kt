@@ -1,8 +1,9 @@
 package chatt.jbins.test
 
 import chatt.jbins.JbinDocument.Companion.ID_PATH
-import chatt.jbins.JbinFilter
 import chatt.jbins.JbinFilter.Comparator.EQ
+import chatt.jbins.JbinFilter.IsEmpty
+import chatt.jbins.JbinFilter.Match
 import chatt.jbins.test.utils.jbinTransaction
 import chatt.jbins.utils.toDocument
 import java.util.*
@@ -14,7 +15,7 @@ fun main(args: Array<String>) {
 
     val ids = (1..10).map { rand() }
     val path = "age"
-    val filters = (1..10).map { JbinFilter.Match(path, EQ, ids[random.nextInt(ids.size)]) }
+    val filters = (1..10).map { Match(path, EQ, ids[random.nextInt(ids.size)]) }
 
     var nanoTime: Long = 0
     measureNanoTime {
@@ -38,9 +39,9 @@ fun main(args: Array<String>) {
 
         jbinTransaction { db ->
 
-            db.getTable("users").createIndex(path, "name")
+            db.getTable("users").createIndex(path, "name", where = IsEmpty("name", false))
 
-            val filter = JbinFilter.Match(path, EQ, ids[random.nextInt(ids.size)])
+            val filter = Match(path, EQ, ids[random.nextInt(ids.size)])
             measureNanoTime {
                 val selectWhere = db.getTable("users").select(filter)
                 println("Result size: " + selectWhere.size)

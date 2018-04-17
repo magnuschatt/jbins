@@ -102,23 +102,26 @@ data class JbinTable(private val name: String,
         return database.executeQuery(sql, translation.params).toDocuments()
     }
 
-    fun createIndex(vararg paths: String) = createIndex(paths.toList())
-    fun createIndex(paths: List<String>) {
+    fun createIndex(vararg paths: String, where: JbinFilter = True()) = createIndex(paths.toList(), where)
+    fun createIndex(paths: List<String>, where: JbinFilter = True()) {
 
-        val functions = paths.map { getPostgresFunction(it) }
-        database.createFunctionsIfNotExists(functions)
+        val whereTranslation = JbinFilterTranslator.translate(where)
+        val indexFunctions = paths.map { getPostgresFunction(it) }
+        database.createFunctionsIfNotExists(indexFunctions)
+        database.createFunctionsIfNotExists(whereTranslation.functions)
 
-        val indexName = functions
+        val indexName = indexFunctions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
                 .replace("jbins_func_", "") + "_jbins_index"
 
-        val indexExpression = functions
+        val indexExpression = indexFunctions
                 .joinToString(separator = ", ", transform = { "${it.name}(body)" })
 
         val arrayIndex = paths.flatMap { splitToElements(it) }.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
-        val sql = "CREATE INDEX IF NOT EXISTS $indexName ON \"$name\" $ginPart($indexExpression)"
-        database.executeUpdate(sql)
+        val wherePart = if (where is True) "" else "WHERE ${whereTranslation.sql}"
+        val sql = "CREATE INDEX IF NOT EXISTS $indexName ON \"$name\" $ginPart($indexExpression) $wherePart"
+        database.executeUpdate(sql, whereTranslation.params)
     }
 
     private fun List<Any>.toDocuments(): List<JbinDocument> {
