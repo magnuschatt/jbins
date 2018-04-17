@@ -16,7 +16,7 @@ sealed class JbinFilter {
                      val matchAll: Boolean = false) : JbinFilter()
 
     data class IsEmpty(val path: String,
-                       val isEmpty: Boolean) : JbinFilter()
+                       val isEmpty: Boolean = true) : JbinFilter()
 
     class True : JbinFilter()
     class False : JbinFilter()

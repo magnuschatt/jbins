@@ -110,9 +110,9 @@ data class JbinTable(private val name: String,
         database.createFunctionsIfNotExists(indexFunctions)
         database.createFunctionsIfNotExists(whereTranslation.functions)
 
-        val indexName = indexFunctions
+        val indexName = "jbins_index_${name}_" + indexFunctions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
-                .replace("jbins_func_", "") + "_jbins_index"
+                .replace("jbins_func_", "")
 
         val indexExpression = indexFunctions
                 .joinToString(separator = ", ", transform = { "${it.name}(body)" })
@@ -120,7 +120,7 @@ data class JbinTable(private val name: String,
         val arrayIndex = paths.flatMap { splitToElements(it) }.any { it.isArray }
         val ginPart = if (arrayIndex) "USING GIN " else ""
         val wherePart = if (where is True) "" else "WHERE ${whereTranslation.sql}"
-        val sql = "CREATE INDEX IF NOT EXISTS $indexName ON \"$name\" $ginPart($indexExpression) $wherePart"
+        val sql = "CREATE INDEX IF NOT EXISTS \"$indexName\" ON \"$name\" $ginPart($indexExpression) $wherePart"
         database.executeUpdate(sql, whereTranslation.params)
     }
 
