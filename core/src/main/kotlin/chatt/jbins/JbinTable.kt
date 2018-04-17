@@ -5,6 +5,7 @@ import chatt.jbins.JbinFilter.*
 import chatt.jbins.JbinFilter.Comparator.EQ
 import chatt.jbins.utils.getPostgresFunction
 import chatt.jbins.utils.splitToElements
+import kotlin.math.absoluteValue
 
 data class JbinTable(private val name: String,
                      private val database: JbinDatabase) {
@@ -112,7 +113,7 @@ data class JbinTable(private val name: String,
 
         val indexName = "ix_${name}_jbins_" + indexFunctions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
-                .replace("jbins_func_", "") + "_${whereTranslation.hashCode()}"
+                .replace("jbins_func_", "") + "_${whereTranslation.hashCode().absoluteValue}"
 
         val indexExpression = indexFunctions
                 .joinToString(separator = ", ", transform = { "${it.name}(body)" })
