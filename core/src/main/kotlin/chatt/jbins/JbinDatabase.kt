@@ -10,6 +10,10 @@ data class JbinDatabase(private val adapter: JbinAdapter): JbinAdapter {
 
     private val logger = KotlinLogging.logger {}
 
+    private val tempTableName = "jbins_func_temp_table"
+    private val createTempTable = "CREATE TEMPORARY TABLE IF NOT EXISTS $tempTableName(name VARCHAR(255))"
+    private val insertTempTable = "INSERT INTO $tempTableName (name) VALUES (?)"
+
     companion object {
         val createdFunctionsCache: MutableSet<String> = ConcurrentHashMap.newKeySet()
     }
@@ -42,10 +46,21 @@ data class JbinDatabase(private val adapter: JbinAdapter): JbinAdapter {
     fun createFunctionsIfNotExists(functions: Iterable<PostgresFunction>) {
         functions.forEach { func ->
             if (!JbinDatabase.createdFunctionsCache.contains(func.name)) {
-                if (!functionExists(func.name)) executeUpdate(func.sql)
-                JbinDatabase.createdFunctionsCache.add(func.name)
+                executeUpdate(createTempTable)
+
+                if (!functionExists(func.name)) {
+                    executeUpdate(insertTempTable, listOf(func.name))
+                    executeUpdate(func.sql)
+                } else if (!functionCreatedRecently(func.name)) {
+                    JbinDatabase.createdFunctionsCache.add(func.name)
+                }
             }
         }
+    }
+
+    private fun functionCreatedRecently(funcName: String): Boolean {
+        val select = executeQuery("SELECT COUNT(*) FROM $tempTableName WHERE name = ?", listOf(funcName))
+        return select.first() != 0.toBigInteger()
     }
 
     private fun functionExists(funcName: String): Boolean {

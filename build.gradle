@@ -1,7 +1,7 @@
 buildscript {
 
     // prod dependencies
-    ext.kotlin_version = '1.2.30'
+    ext.kotlin_version = '1.2.31'
     ext.jackson_version = '2.9.2'
     ext.kotlin_logging_version = '1.5.3'
 
@@ -24,7 +24,7 @@ buildscript {
 
 allprojects {
     group 'chatt.jbins'
-    version '0.7.8'
+    version '0.7.9'
 
     apply plugin: 'idea'
 
