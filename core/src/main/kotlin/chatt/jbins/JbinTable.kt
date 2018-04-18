@@ -111,9 +111,10 @@ data class JbinTable(private val name: String,
         database.createFunctionsIfNotExists(indexFunctions)
         database.createFunctionsIfNotExists(whereTranslation.functions)
 
-        val indexName = "ix_${name}_jbins_" + indexFunctions
+        var indexName = "ix_${name}_jbins_" + indexFunctions
                 .joinToString(separator = "_\$\$_", transform = { it.name })
-                .replace("jbins_func_", "") + "_${whereTranslation.hashCode().absoluteValue}"
+                .replace("jbins_func_", "")
+        indexName += if (where === True) "" else "_${whereTranslation.hashCode().absoluteValue}"
 
         val indexExpression = indexFunctions
                 .joinToString(separator = ", ", transform = { "${it.name}(body)" })
