@@ -16,6 +16,21 @@ dependencies {
 
 jar {
     baseName = 'jbins'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    baseName = 'jbins'
+    classifier = 'sources'
     from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    baseName = 'jbins'
+    classifier = 'javadoc'
     from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
 }
